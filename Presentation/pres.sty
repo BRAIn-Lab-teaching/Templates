@@ -1,0 +1,146 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{pres}[2025/09/30 Minimal beamer presets (venue/lang/nav)]
+
+% ==== Dependencies ====
+% encodings/lang
+\RequirePackage[T1,T2A]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[english,russian]{babel}
+\RequirePackage{physics}
+\RequirePackage{shortcuts}
+
+\RequirePackage{xcolor}
+\RequirePackage{etoolbox}
+\RequirePackage{tikz}
+\usetikzlibrary{positioning,calc}
+\RequirePackage{algorithm}
+\RequirePackage{algpseudocode}
+\RequirePackage{hyperref}
+
+% ==== Strict options (NO fallbacks) ====
+\newcommand*\bb@venue{fpmi} 
+\newcommand*\bb@lang{ru}
+\newcommand*\bb@nav{show}
+
+\DeclareOption{venue=fpmi}{\renewcommand*\bb@venue{fpmi}}
+\DeclareOption{venue=innopolis}{\renewcommand*\bb@venue{innopolis}}
+\DeclareOption{venue=isp}{\renewcommand*\bb@venue{isp}}
+
+\DeclareOption{lang=ru}{\renewcommand*\bb@lang{ru}}
+\DeclareOption{lang=en}{\renewcommand*\bb@lang{en}}
+
+\DeclareOption{navsymbols=show}{\renewcommand*\bb@nav{show}}
+\DeclareOption{navsymbols=hide}{\renewcommand*\bb@nav{hide}}
+
+% ANY other option -> HARD ERROR
+\DeclareOption*{%
+  \PackageError{brainbeamer}{Unknown option `\CurrentOption'}%
+  {Allowed options: venue=fpmi|innopolis|isp, lang=ru|en, navsymbols=show|hide.}%
+}
+\ProcessOptions\relax
+
+% ==== Theme skeleton (assumes \documentclass{beamer}) ====
+\mode<presentation>{\usetheme{Madrid}}
+\useoutertheme[subsection=false]{miniframes}
+\useinnertheme{circles}
+
+% ==== Language + fonts encodings responsibility stays in main .tex ====
+
+% ==== Institute / Logo exports (user can override in .tex) ====
+\providecommand*\InstituteLong{Московский физико-технический институт}
+\newcommand*\LogoPath{} % set by venue
+
+% ==== Colors (base + venue presets) ====
+\definecolor{primary}{rgb}{0.2,0.2,0.6}
+\definecolor{secondary}{rgb}{1,0.49,0.0}
+\definecolor{onPrimary}{rgb}{1,1,1}
+\definecolor{onSecondary}{rgb}{1,1,1}
+
+\expandafter\ifstrequal\expandafter{\bb@venue}{fpmi}{%
+  \definecolor{primary}{rgb}{0.2,0.2,0.6}%
+  \definecolor{secondary}{rgb}{1,0.49,0.0}%
+  \renewcommand*\InstituteLong{Московский физико-технический институт}%
+  \renewcommand*\LogoPath{logos/fpmi.png}%
+}{%
+\expandafter\ifstrequal\expandafter{\bb@venue}{innopolis}{%
+  \definecolor{primary}{RGB}{64,187,32}%
+  \definecolor{secondary}{RGB}{19,21,42}%
+  \renewcommand*\InstituteLong{Innopolis University}%
+  \renewcommand*\LogoPath{logos/innopolis.png}%
+}{
+\expandafter\ifstrequal\expandafter{\bb@venue}{isp}{%
+  \definecolor{primary}{RGB}{3,91,169}%
+  \definecolor{secondary}{RGB}{255,255,255}%
+  \definecolor{onSecondary}{rgb}{0,0,0}%
+  \renewcommand*\InstituteLong{ИСП РАН}%
+  \renewcommand*\LogoPath{logos/isp.png}%
+}{
+  \PackageError{brainbeamer}
+        {Invalid value for option `venue`: \bb@venue}
+        {Allowed values: venue=fpmi|innopolis.}%
+}}}
+
+% ==== Beamer color bindings (decoupled head/foot) ====
+% top bar (sections) — color only, без заливки подложки
+\setbeamercolor{section in head/foot}{parent=,bg=secondary,fg=onSecondary}
+\setbeamercolor{title in head/foot}{parent=,bg=primary,fg=onPrimary}
+\setbeamercolor{palette primary}{bg=primary,fg=onPrimary}
+\setbeamercolor{palette secondary}{bg=secondary,fg=onSecondary}
+\setbeamercolor{palette tertiary}{bg=primary,fg=onPrimary}
+\setbeamercolor{palette quaternary}{bg=primary,fg=onPrimary}
+\setbeamercolor{structure}{fg=primary}      
+\setbeamercolor{section in toc}{fg=primary} 
+
+% nav symbols (tiny buttons, not the miniframes bar)
+\expandafter\ifstrequal\expandafter{\bb@nav}{hide}{\setbeamertemplate{navigation symbols}{}}{}
+
+% ==== Theorems / Algorithm captions per language ====
+\newcommand*{\NameTheorem}{}
+\newcommand*{\NameLemma}{}
+\newcommand*{\NameDefinition}{}
+\newcommand*{\NameProof}{}
+
+\expandafter\ifstrequal\expandafter{\bb@lang}{ru}{%
+  \renewcommand*{\NameTheorem}{Теорема}
+  \renewcommand*{\NameLemma}{Лемма}
+  \renewcommand*{\NameDefinition}{Определение}
+  \renewcommand*{\NameProof}{Доказательство}
+  \makeatletter\renewcommand{\ALG@name}{Алгоритм}\makeatother
+}{\expandafter\ifstrequal\expandafter{\bb@lang}{en}{%
+  \renewcommand*{\NameTheorem}{Theorem}
+  \renewcommand*{\NameLemma}{Lemma}
+  \renewcommand*{\NameDefinition}{Definition}
+  \renewcommand*{\NameProof}{Proof}
+  \makeatletter\renewcommand{\ALG@name}{Algorithm}\makeatother
+}{
+  \PackageError{brainbeamer}
+        {Invalid value for option `venue`: \bb@lang}
+        {Allowed values: venue=en|ru.}%
+}}
+
+\setbeamertemplate{theorems}[unnumbered]
+\newtheorem*{thm}{\NameTheorem}
+\newtheorem*{lem}{\NameLemma}
+\newtheorem*{defn}{\NameDefinition}
+\renewenvironment{proof}[1][\NameProof]{\par\noindent\textit{#1.}\ }{\hfill$\square$\par}
+
+\makeatletter
+\renewcommand{\thealgorithm}{} % пустой счётчик
+\renewcommand{\fnum@algorithm}{\ALG@name} % подпись без номера
+\makeatother
+
+
+\newcommand{\PDFbadge}{%
+  \tikz[baseline=-0.6ex]{\node[
+    draw, draw=white,rounded corners=1pt,inner sep=2.5pt,outer sep=0pt,
+    line width=0.4pt,text=white,fill=red]{\scriptsize PDF};}
+}
+\newcommand{\pdflink}[2]{\vfill\href{#2}{\PDFbadge~\footnotesize #1}\par\vspace{0.2em}}
+
+\titlegraphic{\includegraphics[height=0.8cm]{\LogoPath}}
+\institute[]{\InstituteLong}
+
+% ==== Exports users may want to use in main ====
+% \InstituteLong, \InstituteShort, \LogoPath available to \titlegraphic etc.
+
+% Done.

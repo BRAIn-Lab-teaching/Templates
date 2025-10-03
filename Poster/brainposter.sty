@@ -1,0 +1,354 @@
+% brainlab.sty -- пакет оформления BRAIn Lab
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesExplPackage
+  {brainposter}
+  {2025/06/02}
+  {0.2}
+  {BRAIn Lab formatting package}
+
+\RequirePackage{xcolor}
+\RequirePackage{xkeyval}
+\RequirePackage{etoolbox}
+\RequirePackage{expl3}
+\RequirePackage{l3keys2e}
+\RequirePackage{xparse}
+\RequirePackage{xstring}
+\RequirePackage{multicol}
+\RequirePackage{geometry}
+\RequirePackage{svg}
+\RequirePackage{physics}
+\RequirePackage{shortcuts}
+
+% ========== Опции пакета ============
+\definecolor{braincolor}{RGB}{190,32,240} % default brain color
+\definecolor{graybg}{RGB}{245,245,250}    % default bg color
+
+\newif\if@linkcolorset
+\newif\if@citecolorset
+\newif\if@urlcolorset
+
+\def\bibliostyle{plainnat}
+\def\bibfile{references}
+\def\citingstyle{authoryear}
+
+\DeclareOptionX{bgcolor}{
+  \IfSubStr{#1}{,}
+    {\definecolor{graybg}{RGB}{#1}}
+    {\colorlet{graybg}{#1}}
+}
+
+\DeclareOptionX{braincolor}{
+  \IfSubStr{#1}{,}
+    {\definecolor{braincolor}{RGB}{#1}}
+    {\colorlet{braincolor}{#1}}
+}
+
+\DeclareOptionX{linkcolor}{
+  \IfSubStr{#1}{,}
+    {\definecolor{linkcolor}{RGB}{#1}}
+    {\colorlet{linkcolor}{#1}}\@linkcolorsettrue
+}
+
+\DeclareOptionX{citecolor}{
+  \IfSubStr{#1}{,}
+    {\definecolor{citecolor}{RGB}{#1}}
+    {\colorlet{citecolor}{#1}}\@citecolorsettrue
+}
+
+\DeclareOptionX{urlcolor}{
+  \IfSubStr{#1}{,}
+    {\definecolor{urlcolor}{RGB}{#1}}
+    {\colorlet{urlcolor}{#1}}\@urlcolorsettrue
+}
+\DeclareOptionX{citingstyle}{\def\citingstyle{#1}}
+\DeclareOptionX{bibliostyle}{\def\bibliostyle{#1}}
+\DeclareOptionX{bibfile}{\def\bibfile{#1}}
+
+
+\newlength{\posterwidth}
+\newlength{\posterheight}
+\newcommand{\postercolumns}{4}
+
+\DeclareOptionX{posterwidth}{\setlength{\posterwidth}{#1}}
+\DeclareOptionX{posterheight}{\setlength{\posterheight}{#1}}
+\DeclareOptionX{postercolumns}{\renewcommand{\postercolumns}{#1}}
+
+\ProcessOptionsX\relax
+
+% fallback to braincolor if not explicitly set
+\if@linkcolorset\else\colorlet{linkcolor}{braincolor}\fi
+\if@citecolorset\else\colorlet{citecolor}{braincolor}\fi
+\if@urlcolorset\else\colorlet{urlcolor}{blue}\fi
+
+% ========== Базовые подключения ===========
+\RequirePackage{inputenc}
+\RequirePackage[T2A]{fontenc}
+\RequirePackage[english]{babel}
+\RequirePackage{lipsum}
+\RequirePackage{titlesec}
+\RequirePackage[hypcap=false]{caption}
+\RequirePackage{fancyhdr}
+\RequirePackage{authblk}
+\RequirePackage{amsmath, amssymb, amsthm}
+\RequirePackage{graphicx, float}
+\RequirePackage{array, booktabs, colortbl}
+\RequirePackage{algorithm, algpseudocode}
+\PassOptionsToPackage{square,\citingstyle}{natbib}
+\RequirePackage{natbib}
+\let\cite\citep
+\RequirePackage[
+  colorlinks=true,
+  citecolor=citecolor,
+  linkcolor=linkcolor,
+  urlcolor=urlcolor
+]{hyperref}
+\RequirePackage[noabbrev]{cleveref}
+\crefname{equation}{}{}
+\Crefname{equation}{}{}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{csvsimple}
+
+% ========== Глобальные настройки ===========
+\pagestyle{empty}
+\titleformat{\section}{\large\bfseries\color{black}}{\thesection}{1em}{}
+\setlength{\parindent}{0pt}
+\captionsetup[table]{labelfont=bf, labelsep=colon, font=small}
+
+\geometry{
+  paperwidth=\posterwidth,
+  paperheight=\posterheight,
+  margin=1cm
+}
+
+% ========== Meta-информация ===========
+\providecommand{\papertitle}{}
+\providecommand{\brainauthors}{}
+\providecommand{\affils}{}
+\providecommand{\baselogoslist}{}
+\providecommand{\additionallogoslist}{}
+
+\newif\ifshowadditionallogos
+\showadditionallogosfalse
+
+\ExplSyntaxOn
+\NewDocumentCommand{\setbrainmeta}{m}{
+  \keys_set:nn { brain / meta } { #1 }
+}
+
+\keys_define:nn { brain / meta }
+  {
+    title      .code:n = { \renewcommand{\papertitle}{#1} },
+    authors    .code:n = { \renewcommand{\brainauthors}{#1} },
+    affiliations .code:n = { \renewcommand{\affils}{#1} },
+    baselogos .code:n = { \renewcommand{\baselogoslist}{#1} },
+    additionallogos .code:n = { \renewcommand{\additionallogoslist}{#1}\showadditionallogostrue },
+  }
+\ExplSyntaxOff
+
+% ========== Оформление блоков ===========
+% \newtcolorbox{braintitlebox}{
+%   colback=graybg,
+%   colframe=gray!60,
+%   arc=2mm,
+%   boxrule=0.3pt,
+%   width=\textwidth,
+%   left=12pt, right=12pt, top=10pt, bottom=10pt,
+%   enhanced,
+% }
+\newtcolorbox{braintitlebox}{
+  interior style={
+    left color=braincolor!40!white,
+    right color=braincolor!5!white
+  },
+  arc=0mm,
+  frame hidden,
+  boxrule=0pt,
+  width=\paperwidth,
+  left=1cm, right=1cm, top=0.5cm, bottom=12pt,
+  enhanced,
+  fontupper=\bfseries,
+}
+
+\newtcolorbox{braintablebox}[1][]{
+  colback=graybg,
+  colframe=gray!60,
+  arc=2mm,
+  boxrule=0.3pt,
+  width=\columnwidth,
+  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  enhanced,
+  #1
+}
+
+\let\oldtable\table
+\let\endoldtable\endtable
+
+\RenewDocumentEnvironment{table}{O{}}
+{
+  \oldtable[#1]
+  \begin{braintablebox}
+}
+{
+  \end{braintablebox}
+  \endoldtable
+}
+
+\RenewDocumentEnvironment{table*}{O{}}
+{
+  \makeatletter\@dblfloat{table}[#1]\makeatother
+  \begin{braintablebox}[width=\textwidth]
+}
+{
+  \end{braintablebox}
+  \makeatletter\end@dblfloat\makeatother
+}
+
+\renewenvironment{algorithm}[2][]{%
+  \refstepcounter{algorithm}%
+  \begin{tcolorbox}[%
+    colback=braincolor!5!white,
+    colframe=gray!60,
+    arc=2mm,
+    boxrule=0.3pt,
+    width=\columnwidth,
+    left=10pt, right=10pt, top=8pt, bottom=8pt,
+    enhanced,
+    title={\textbf{Algorithm~\thealgorithm}: #2},%
+    fonttitle=\bfseries,
+    coltitle=black,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},%
+  boxed title style={colback=braincolor!20!white,, sharp corners, colframe=braincolor!40},
+    #1
+  ]
+}{%
+  \end{tcolorbox}%
+}
+
+\newcommand{\highlightrow}{\rowcolor{braincolor!15}}
+\newcommand{\highlightcell}{\cellcolor{braincolor!15}}
+
+\tcbset{brainstyle/.style={
+  colback=braincolor!5!white,
+  colframe=gray!60,
+  arc=2mm,
+  boxrule=0.3pt,
+  width=\columnwidth,
+  left=12pt, right=12pt, top=10pt, bottom=10pt,
+  enhanced,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=braincolor!20!white,, sharp corners, colframe=braincolor!40},
+  fonttitle=\bfseries,
+  coltitle=black
+}}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\DeclareBrainTcbTheorem}{mm}{
+  \newtheorem{#1}{#2}
+  \RenewDocumentEnvironment{#1}{o +b}
+   {
+    \refstepcounter{#1}
+    \begin{tcolorbox}[
+      brainstyle,
+      title={\textbf{#2~\csname the#1\endcsname}\IfValueT{##1}{\ (\textit{##1})}},
+    ]
+    ##2
+    \end{tcolorbox}
+   }
+   {}
+}
+\ExplSyntaxOff
+
+\DeclareBrainTcbTheorem{theorem}{Theorem}
+\DeclareBrainTcbTheorem{assumption}{Assumption}
+\DeclareBrainTcbTheorem{definition}{Definition}
+
+% ========== Рендеринг ============
+\newcommand{\baselogos}[1]{%
+  \begin{minipage}[t]{0.75\columnwidth}
+    \renewcommand{\do}[1]{\includegraphics[height=1.2em]{logos/##1}\hspace{1.5em}}%
+    \expandafter\docsvlist\expandafter{#1}%
+  \end{minipage}%
+} 
+
+\newcommand{\additionallogos}[1]{%
+  \\[0.7em]
+  \begin{minipage}[t]{0.9\columnwidth}
+    \renewcommand{\do}[1]{\includegraphics[height=1.2em]{logos/##1}\hspace{1.5em}}%
+    \expandafter\docsvlist\expandafter{#1}%
+  \end{minipage}%
+} 
+
+\RequirePackage{calc}
+
+\newsavebox{\brainbox}
+\newlength{\brainboxheight}
+
+\newcommand{\maketitlebox}{%
+    \sbox{\brainbox}{%
+        \begin{minipage}[c]{\paperwidth}
+            \begin{braintitlebox}
+            \baselogos{\baselogoslist}
+            \hfill%
+            \begin{minipage}[t]{0.25\textwidth}
+                \raggedleft
+                \includesvg[height=1.5em]{logos/NeurIPS-logo}%
+                \hspace{1.5em}
+                % \raisebox{.21em}{\textbf{\Large \textcolor{braincolor}{BRAIn Lab}}} \hspace{.5em}
+                \includegraphics[height=1.5em]{logos/brain lab.png} 
+            \end{minipage}%
+            \ifshowadditionallogos
+            \additionallogos{\additionallogoslist}
+            \fi%
+            \\[1.2em]
+            \begin{minipage}[t]{\textwidth}
+                \centering
+                {\Huge \textbf{\papertitle}} \\[1.2em]
+                \Large \textbf{\brainauthors} \\[0.3em]
+                \large \affils
+            \end{minipage}
+          \end{braintitlebox}
+        \end{minipage}
+    }
+  \settototalheight{\brainboxheight}{\usebox{\brainbox}}
+  % Рисуем overlay:
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[anchor=north west, inner sep=0pt] at (current page.north west)
+      {\usebox{\brainbox}};
+  \end{tikzpicture}
+  % Двигаем основной текст вниз:
+ \vspace*{\brainboxheight}
+ \vspace*{-1cm}
+}
+
+
+
+\NewDocumentEnvironment{mainpart}{}
+{
+  \maketitlebox
+  \begin{multicols}{\postercolumns}
+}
+{
+  \end{multicols}
+}
+
+
+\NewDocumentEnvironment{col}{}%
+  {}%
+  {\vfill\columnbreak}
+
+\NewDocumentEnvironment{firstcol}{}%
+  {}%
+  {\vfill\columnbreak}
+
+\NewDocumentEnvironment{secondcol}{}%
+  {}%
+  {\vfill\columnbreak}
+
+\NewDocumentEnvironment{thirdcol}{}%
+  {}%
+  {\vfill\columnbreak}
+
+\NewDocumentEnvironment{fourthcol}{}%
+  {}%
+  {\vfill\columnbreak}

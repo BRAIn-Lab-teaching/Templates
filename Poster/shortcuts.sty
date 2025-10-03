@@ -1,0 +1,145 @@
+% ========================
+% Определение множеств
+% ========================
+
+% Калиграфические
+\newcommand{\cX}{\ensuremath{\mathcal{X}}}
+\newcommand{\cM}{\ensuremath{\mathcal{M}}}
+\newcommand{\cN}{\ensuremath{\mathcal{N}}}
+\newcommand{\cT}{\ensuremath{\mathcal{T}}}
+\newcommand{\cP}{\ensuremath{\mathcal{P}}}
+\newcommand{\cO}{\ensuremath{\mathcal{O}}}
+\newcommand{\cL}{\ensuremath{\mathcal{L}}}
+\newcommand{\cD}{\ensuremath{\mathcal{D}}}
+\newcommand{\cF}{\ensuremath{\mathcal{F}}}
+\newcommand{\cC}{\ensuremath{\mathcal{C}}}
+\newcommand{\cA}{\ensuremath{\mathcal{A}}}
+
+% Двойная линия
+\newcommand{\N}{\ensuremath{\mathbb{N}}} 
+\newcommand{\Z}{\ensuremath{\mathbb{Z}}} 
+\newcommand{\Q}{\ensuremath{\mathbb{Q}}} 
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\Ss}{\ensuremath{\mathbb{S}}} 
+\newcommand{\Rd}{\ensuremath{\R^{d}}}
+
+
+% ========================
+% Часто используемые обозначения
+% ========================
+\newcommand{\eps}{\ensuremath{\varepsilon}}
+\newcommand{\such}{\mid}
+\newcommand{\variance}{\mathbb{D}}
+
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\softmax}{softmax}
+\DeclareMathOperator*{\diag}{diag}
+\DeclareMathOperator*{\Adj}{Adj}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\internal}{int}
+\DeclareMathOperator*{\dom}{dom}
+\DeclareMathOperator*{\epi}{epi}
+\DeclareMathOperator*{\aff}{aff}
+\DeclareMathOperator*{\conv}{conv}
+\DeclareMathOperator*{\cl}{cl}
+\DeclareMathOperator*{\dist}{dist}
+\DeclareMathOperator*{\vspan}{span}
+\DeclareMathOperator*{\ri}{ri}
+\DeclareMathOperator*{\relint}{relint}
+\DeclareMathOperator*{\Var}{Var}
+\DeclareMathOperator*{\diam}{diam}
+\DeclareMathOperator*{\LMO}{LMO}
+\DeclareMathOperator*{\gap}{gap}
+
+% ========================
+% Удобные макросы
+% ========================
+
+% Суммы
+\newcommand{\sumione}[1]{\ensuremath{\sum_{i=1}^{#1}}}
+\newcommand{\sumjone}[1]{\ensuremath{\sum_{j=1}^{#1}}}
+
+% Определение функции
+\newcommand{\map}[3]{\ensuremath{#1 : #2 \to #3}}
+
+% Следует и равносильно
+\newcommand{\hence}{\ensuremath{\ \Longrightarrow\ }}
+\newcommand{\nas}{\ensuremath{\ \Longleftrightarrow\ }}
+
+% Транспонирование
+\NewDocumentCommand{\trans}{s d()}{%
+  \ensuremath{%
+    \IfBooleanTF{#1}{%
+      % Если звездочка указана: без скобок
+      #2^\top%
+    }{%
+      % Если звездочка не указана: с масштабируемыми скобками
+      \left( #2 \right)^\top%
+    }%
+  }%
+}
+
+% Определение скалярного произведения
+\DeclareDocumentCommand{\scalar}{m}{%
+  \ensuremath{\left\langle #1 \right\rangle}%
+}
+
+\usepackage{xifthen}
+
+% Главная команда
+\DeclareDocumentCommand{\expect}{e{_^} >{\SplitArgument{1}{|}} m}{%
+  \expandafter\expect@split\expandafter{#1}{#2}#3
+}
+
+% Вспомогательная функция
+\DeclareDocumentCommand{\expect@split}{m m m m}{
+  \mathbb{E}%
+  \IfNoValueF{#1}{_{#1}}%
+  \IfNoValueF{#2}{^{#2}}%
+  \IfNoValueTF{#4}
+    {\left[ #3 \right]}%
+    {\left[ #3 \,\middle|\, #4 \right]}
+}
+
+% ========================
+% Макросы для функций с индексами
+% ========================
+
+% Создает макросы для функций с возможностью индексов и масштабируемыми скобками
+\newcommand{\newfuncmacro}[1]{%
+  \expandafter\DeclareDocumentCommand\csname#1\endcsname{e{^_}D(){}}{%
+      #1%
+      \IfNoValueF{##1}{^{##1}}%
+      \IfNoValueF{##2}{_{##2}}%
+      \IfBlankF{##3}{\qty(##3)}%
+  }%
+}
+
+
+
+% Определение функций f, g, h с индексами 
+\newfuncmacro{f}
+\newfuncmacro{g}
+\newfuncmacro{h}
+
+
+% ========================
+% Набор текста
+% ========================
+
+% Бэкслэш для верных переносов слов. Пример: вместо кот/собака -> кот\bslash собака
+\newcommand{\bslash}{/\hspace{0pt}}
+
+% Док-ва proofnec -- необходимо, proofsuf -- достаточно, proofnas -- необходимо и достаточно
+\newenvironment{proofnec}{%
+  \par\noindent\textcircled{$\Rightarrow$}\quad
+}{\par}
+
+\newenvironment{proofsuf}{%
+  \par\noindent\textcircled{$\Leftarrow$}\quad
+}{\par}
+
+\newenvironment{proofnas}{%
+  \par\noindent\textcircled{$\Leftrightarrow$}\quad
+}{\par}

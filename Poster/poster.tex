@@ -1,0 +1,99 @@
+\documentclass[11pt]{article}
+
+
+\usepackage[
+  bgcolor={245,245,250},      % box bg color: RGB or xcolor name (e.g. gray, blue, etc.)
+  braincolor={190,32,240},    % accent color: RGB or xcolor name (e.g. gray, blue, etc.)
+  % linkcolor={245,245,250},  % defaults to braincolor
+  % citecolor={245,245,250},  % defaults to braincolor
+  % urlcolor=blue,            % defaults to blue
+  posterwidth=42cm,
+  posterheight=30cm,
+  postercolumns=3,
+  citingstyle=authoryear,     % authoryear: [Ivanov et al., 2023] | numbers: [1] | super: ¹
+  bibliostyle=plainnat,       % plainnat, abbrvnat, unsrtnat, ...
+  bibfile=references          % .bib file name (without .bib)
+]{brainposter}
+
+\setbrainmeta{
+  title={Neural Alignment Techniques for  Representations},
+  authors={
+    Jane Doe\textsuperscript{1}, John Smith\textsuperscript{2}, Alice Johnson\textsuperscript{1}
+  },
+  affiliations={
+    \textsuperscript{1}Moscow Institute of Physics and Technology
+    \textsuperscript{2}Institute for System Programming, RAS
+  },
+  baselogos={mipt.png,isp.png,innopolis.png},
+  % additionallogos={innopolis.png,mipt.png,isp.png}
+  % Лучший способ сделать ч/б лого -- взять .svg, открыть, напрмиер, figma, поменять цвет и сохранить как png 
+}
+
+
+\begin{document}
+\begin{mainpart}
+
+  \section*{Introduction}
+  \lipsum[2]
+
+  \section*{Theoretical Foundations}
+  \lipsum[10]
+
+  \begin{theorem}
+  Let \( a, b \in \mathbb{R} \). Then \( a^2 + b^2 \geq 2ab \).
+  \end{theorem}
+
+  As stated in \Cref{assumption:strong_convexity}, we assume $f$ is $\mu$-strongly convex, i.e. for all \( x, y \in X \) \Cref{eq:strong_convexity} holds. See results in \Cref{table:results}. We use \Cref{algo:proj_gd}.
+
+  \lipsum[11]
+\columnbreak
+  \begin{definition}
+  A mapping \( T: X \to X \) is non-expansive if \( \|T(x) - T(y)\| \leq \|x - y\| \) for all \( x, y \in X \).
+  \end{definition}
+
+  \begin{assumption}\label{assumption:strong_convexity}
+  The function \(f\) is assumed to be $\mu$-strongly convex, i.e., for all \( x, y \in X \):
+  \begin{equation}\label{eq:strong_convexity}
+  f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|^2.
+  \end{equation}
+  \end{assumption}
+
+
+  \section*{Methodology}
+  \lipsum[3]
+
+  \begin{algorithm}{Projected Gradient Descent}\label{algo:proj_gd}
+  \begin{algorithmic}[1]
+  \State \textbf{Input:} Initial point \( x_0 \), step size \( \eta \), projection operator \( \Pi \)
+  \For{ \( t = 1 \) to \( T \) }
+    \State \( x_t \gets \Pi(x_{t-1} - \eta \nabla f(x_{t-1})) \)
+  \EndFor
+  \State \Return \( x_T \)
+  \end{algorithmic}
+  \end{algorithm}
+\columnbreak
+  \section*{Results}
+  \lipsum[6]
+
+  \begin{table}[ht]
+  \centering
+  \begin{tabular}{l c c c}
+  \toprule
+  Model & CIFAR-10 & SVHN & Params \\
+  \midrule
+  MLP \rule{0pt}{2.3ex} & 84.5\% & \highlightcell 91.2\% & 1.2M \\
+  CNN-3 &\highlightcell 89.3\% & 94.1\% & 0.8M \\
+  \highlightrow
+  ResNet18 & 92.7\% & 95.6\% & 11.7M \\
+  ResNet152 & 95.2\% & 97.1\% & 36.5M \\
+  \highlightrow
+  ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
+  \bottomrule
+  \end{tabular}
+  \caption{Accuracy and parameter count across datasets.}
+  \label{table:results}
+  \end{table}
+
+  \lipsum[4]
+\end{mainpart}
+\end{document}
