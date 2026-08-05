@@ -1,19 +1,43 @@
 \documentclass[11pt]{article}
 
-
 \usepackage[
-  twocolumnmode,              % comment to disable 2-column layout (main part only)
-  shownumpages,               % comment to hide page numbers
-  bgcolor={245,245,250},      % box bg color: RGB or xcolor name (e.g. gray, blue, etc.)
-  braincolor={190,32,240},    % accent color: RGB or xcolor name (e.g. gray, blue, etc.)
-  % linkcolor={245,245,250},  % defaults to braincolor
-  % citecolor={245,245,250},  % defaults to braincolor
-  % urlcolor=blue,            % defaults to blue
-  citingstyle=authoryear,     % authoryear: [Ivanov et al., 2023] | numbers: [1] | super: ¹
-  bibliostyle=plainnat,       % plainnat, abbrvnat, unsrtnat, ...
-  bibfile=references          % .bib file name (without .bib)
+  % ----- РЕЖИМЫ -----
+  twocolumnmode,           % Двухколоночный режим (закомментировать для одной колонки)
+  % shownumpages,          % Показать номера страниц
+  % darkheaders,           % Тёмные заголовки (фиолетовые, белый текст); по умолчанию светлые (голубые, чёрный текст)
+  % nodefaultlogos,        % Убрать зашитые логотипы МФТИ / ИСП РАН / Иннополиса / BRAIn
+  % ----- БИБЛИОГРАФИЯ -----
+  citingstyle=numbers,     % Стиль цитирования: numbers | authoryear | super
+  bibliostyle=unsrtnat,    % Стиль библиографии: unsrtnat | plainnat | abbrvnat
+  bibfile=references,      % Имя .bib файла (без расширения)
+  % ----- ЛОГОТИПЫ -----
+  % logopath=logos/,       % Папка с логотипами (со слэшем на конце)
+  % ----- НАСТРОЙКИ РАМОК -----
+  % boxrule=0.5pt,         % Толщина рамки (по умолчанию: 0.3pt)
+  % arc=3mm,               % Радиус скругления углов (по умолчанию: 2mm)
+  % ----- НАСТРОЙКИ ОТСТУПОВ (лучше оставьте как есть) -----
+  % Отдельные отступы для разных блоков
+  % titleleftpad=15pt,     % Левый отступ в титульнике и теоремах
+  % titlerightpad=15pt,    % Правый отступ в титульнике и теоремах
+  % titletopad=12pt,       % Верхний отступ в титульнике и теоремах
+  % titlebottompad=12pt,   % Нижний отступ в титульнике и теоремах
+  % tableleftpad=8pt,      % Левый отступ в таблицах
+  % tablerightpad=8pt,     % Правый отступ в таблицах
+  % tabletopad=6pt,        % Верхний отступ в таблицах
+  % tablebottompad=6pt,    % Нижний отступ в таблицах
+  % algorleftpad=12pt,     % Левый отступ в алгоритмах
+  % algorrightpad=12pt,    % Правый отступ в алгоритмах
+  % algortopad=10pt,       % Верхний отступ в алгоритмах
+  % algorbottompad=10pt,   % Нижний отступ в алгоритмах
+  % Универсальная настройка отступов: задаёт все отступы сразу и
+  % перекрывает все двенадцать значений выше
+  % padding=30pt,
 ]{brainlab}
 
+\usepackage{shortcuts}
+
+% Подключаем lipsum ТОЛЬКО для демо
+\usepackage{lipsum}
 
 \setbrainmeta{
   title={Neural Alignment Techniques for Enhanced Semantic Representations},
@@ -25,10 +49,12 @@
     \textsuperscript{2}Institute for System Programming, RAS
   },
   abstract={
-    \lipsum[1] \citep{kingma2014adam} 
+    \lipsum[1] \citep{kingma2014adam}
   },
-  % additionallogos={innopolis.png,mipt.png,isp.png}
-  % Лучший способ сделать ч/б лого -- взять .svg, открыть, напрмиер, figma, поменять цвет и сохранить как png 
+  % Имена файлов указываются С расширением и должны лежать в папке logopath.
+  % additionallogos={innopolis.pdf,mipt.pdf,isp.pdf},
+  % Лучший способ сделать ч/б лого -- взять .svg, открыть, например, в figma,
+  % поменять цвет и сохранить как png, потом онлайн-конвертером сделать .pdf
 }
 
 
@@ -50,7 +76,7 @@ As stated in \Cref{assumption:strong_convexity}, we assume $f$ is $\mu$-strongly
 
 \lipsum[11]
 
-\begin{definition}
+\begin{definition}[non-expansive mapping]
 A mapping \( T: X \to X \) is non-expansive if \( \|T(x) - T(y)\| \leq \|x - y\| \) for all \( x, y \in X \).
 \end{definition}
 
@@ -75,14 +101,12 @@ Model & CIFAR-10 & SVHN & Params \\
 \midrule
 MLP \rule{0pt}{2.3ex} & 84.5\% & \highlightcell 91.2\% & 1.2M \\
 CNN-3 &\highlightcell 89.3\% & 94.1\% & 0.8M \\
-\highlightrow
-ResNet18 & 92.7\% & 95.6\% & 11.7M \\
+\highlightrow ResNet18 & 92.7\% & 95.6\% & 11.7M \\
 ResNet152 & 95.2\% & 97.1\% & 36.5M \\
-\highlightrow
-ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
+\highlightrow ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 \bottomrule
 \end{tabular}
-\caption{Accuracy and parameter count across datasets.}
+\caption{Accuracy and parameter count across datasets.}\label{table:results}
 \end{table}
 
 \lipsum[4]
@@ -100,6 +124,14 @@ ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 \section{Results}
 \lipsum[6]
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\columnwidth]{logos/mipt.pdf}
+\caption{Plain figures are not boxed: images work exactly as in standard \LaTeX{}.}\label{fig:demo}
+\end{figure}
+
+\Cref{fig:demo} shows how an image is included.
+
 \end{mainpart}
 
 \begin{appendixpart}
@@ -110,7 +142,7 @@ ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 \section{Details of Implementation}
 \lipsum[8]
 
-\begin{table}[htbp]
+\begin{table}[htbp]{0.5\textwidth}
 \centering
 \begin{tabular}{l c c c}
 \toprule
@@ -118,14 +150,12 @@ Model & CIFAR-10 & SVHN & Params \\
 \midrule
 MLP \rule{0pt}{2.3ex} & 84.5\% & \highlightcell 91.2\% & 1.2M \\
 CNN-3 &\highlightcell 89.3\% & 94.1\% & 0.8M \\
-\highlightrow
-ResNet18 & 92.7\% & 95.6\% & 11.7M \\
+\highlightrow ResNet18 & 92.7\% & 95.6\% & 11.7M \\
 ResNet152 & 95.2\% & 97.1\% & 36.5M \\
-\highlightrow
-ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
+\highlightrow ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 \bottomrule
 \end{tabular}
-\caption{Accuracy and parameter count across datasets.}\label{table:results}
+\caption{Accuracy and parameter count across datasets (repeated).}\label{table:results-appendix}
 \end{table}
 
 

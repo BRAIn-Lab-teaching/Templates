@@ -1,88 +1,103 @@
-% brainlab.sty -- пакет оформления BRAIn Lab
-
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage
-  {brainlab}
-  {2025/06/02}
-  {0.2}
-  {BRAIn Lab formatting package}
+\ProvidesPackage{brainlab}[2026/08/05 v2.1 BrainLab Package]
 
+% ПАКЕТЫ ДЛЯ ОБРАБОТКИ ОПЦИЙ
+\RequirePackage{kvoptions}
+\RequirePackage{etoolbox}   % нужен для \docsvlist в \additionallogos
+
+\SetupKeyvalOptions{
+  family=brain,           % внутреннее имя семейства опций
+  prefix=brain@           % префикс для макросов (создаст \brain@citingstyle и т.д.)
+}
+
+% ============================================================================
+% ОПЦИИ С ЗНАЧЕНИЯМИ ПО УМОЛЧАНИЮ
+
+% --- Основные переключатели (булевы) ---
+\DeclareBoolOption{twocolumnmode}
+\DeclareBoolOption{darkheaders}
+\DeclareBoolOption{shownumpages}
+\DeclareBoolOption{nodefaultlogos}   % убрать зашитые логотипы из титульника
+
+% Значения по умолчанию для булевых опций
+\brain@twocolumnmodefalse
+\brain@darkheadersfalse
+\brain@shownumpagesfalse
+\brain@nodefaultlogosfalse
+
+% --- Строковые опции (key=value) ---
+\DeclareStringOption[numbers]{citingstyle}
+\DeclareStringOption[unsrtnat]{bibliostyle}
+\DeclareStringOption[references]{bibfile}
+\DeclareStringOption[logos/]{logopath}   % где лежат файлы логотипов
+
+% --- Опции для отступов и рамок ---
+\DeclareStringOption[0.3pt]{boxrule}
+\DeclareStringOption[2mm]{arc}
+% ВАЖНО: у padding НЕТ значения по умолчанию. Иначе проверка \ifx ниже
+% срабатывала бы всегда и затирала все индивидуальные отступы.
+\DeclareStringOption{padding}
+
+% --- Отступы в заголовке (с возможностью переопределения) ---
+\DeclareStringOption[12pt]{titleleftpad}
+\DeclareStringOption[12pt]{titlerightpad}
+\DeclareStringOption[10pt]{titletopad}
+\DeclareStringOption[10pt]{titlebottompad}
+
+% --- Отступы в таблицах ---
+\DeclareStringOption[10pt]{tableleftpad}
+\DeclareStringOption[10pt]{tablerightpad}
+\DeclareStringOption[8pt]{tabletopad}
+\DeclareStringOption[8pt]{tablebottompad}
+
+% --- Отступы в алгоритмах ---
+\DeclareStringOption[10pt]{algorleftpad}
+\DeclareStringOption[10pt]{algorrightpad}
+\DeclareStringOption[8pt]{algortopad}
+\DeclareStringOption[8pt]{algorbottompad}
+
+
+% ОБРАБОТКА ОПЦИЙ
+\ProcessKeyvalOptions{brain}
+
+% Если указан padding, переопределяем все отступы
+\ifx\brain@padding\@empty
+\else
+  \def\brain@titleleftpad{\brain@padding}%
+  \def\brain@titlerightpad{\brain@padding}%
+  \def\brain@titletopad{\brain@padding}%
+  \def\brain@titlebottompad{\brain@padding}%
+  \def\brain@tableleftpad{\brain@padding}%
+  \def\brain@tablerightpad{\brain@padding}%
+  \def\brain@tabletopad{\brain@padding}%
+  \def\brain@tablebottompad{\brain@padding}%
+  \def\brain@algorleftpad{\brain@padding}%
+  \def\brain@algorrightpad{\brain@padding}%
+  \def\brain@algortopad{\brain@padding}%
+  \def\brain@algorbottompad{\brain@padding}%
+\fi
+
+% ============================================================================
+% ОСТАЛЬНЫЕ ПАКЕТЫ
+
+% Цвета (основные)
 \RequirePackage{xcolor}
-\RequirePackage{xkeyval}
-\RequirePackage{etoolbox}
-\RequirePackage{expl3}
-\RequirePackage{l3keys2e}
-\RequirePackage{xparse}
-\RequirePackage{xstring}
-\RequirePackage{physics}
-\RequirePackage{shortcuts}
+\definecolor{braincolor}{RGB}{141,72,102}
+\definecolor{boxcolor}{RGB}{157,225,252}
+\colorlet{highlightcolor}{braincolor!40}
+\colorlet{linkcolor}{braincolor}
+\colorlet{citecolor}{braincolor}
+\colorlet{urlcolor}{blue}
 
-% ========== Опции пакета ============
-\definecolor{braincolor}{RGB}{190,32,240} % default brain color
-\definecolor{graybg}{RGB}{245,245,250}    % default bg color
+% \highlightrow ставится В НАЧАЛЕ строки таблицы, \highlightcell — перед ячейкой
+\newcommand{\highlightrow}{\rowcolor{highlightcolor}}
+\newcommand{\highlightcell}{\cellcolor{highlightcolor}}
 
-\newif\if@linkcolorset
-\newif\if@citecolorset
-\newif\if@urlcolorset
-
-\newif\iftwocolumnmode
-\twocolumnmodefalse
-
-\newif\ifshownumpages
-\shownumpagesfalse
-
-\def\bibliostyle{plainnat}
-\def\bibfile{references}
-\def\citingstyle{authoryear}
-
-\DeclareOptionX{twocolumnmode}{\twocolumnmodetrue}
-\DeclareOptionX{shownumpages}{\shownumpagestrue}
-
-\DeclareOptionX{bgcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{graybg}{RGB}{#1}}
-    {\colorlet{graybg}{#1}}
-}
-
-\DeclareOptionX{braincolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{braincolor}{RGB}{#1}}
-    {\colorlet{braincolor}{#1}}
-}
-
-\DeclareOptionX{linkcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{linkcolor}{RGB}{#1}}
-    {\colorlet{linkcolor}{#1}}\@linkcolorsettrue
-}
-
-\DeclareOptionX{citecolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{citecolor}{RGB}{#1}}
-    {\colorlet{citecolor}{#1}}\@citecolorsettrue
-}
-
-\DeclareOptionX{urlcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{urlcolor}{RGB}{#1}}
-    {\colorlet{urlcolor}{#1}}\@urlcolorsettrue
-}
-\DeclareOptionX{citingstyle}{\def\citingstyle{#1}}
-\DeclareOptionX{bibliostyle}{\def\bibliostyle{#1}}
-\DeclareOptionX{bibfile}{\def\bibfile{#1}}
-
-\ProcessOptionsX\relax
-
-% fallback to braincolor if not explicitly set
-\if@linkcolorset\else\colorlet{linkcolor}{braincolor}\fi
-\if@citecolorset\else\colorlet{citecolor}{braincolor}\fi
-\if@urlcolorset\else\colorlet{urlcolor}{blue}\fi
-
-% ========== Базовые подключения ===========
-\RequirePackage{inputenc}
-\RequirePackage[T2A]{fontenc}
+% Основные пакеты
+% T1 идёт последней и потому становится кодировкой по умолчанию (текст английский).
+% T2A остаётся доступной, поэтому кириллица в комментариях и в тексте наберётся.
+\RequirePackage[T2A,T1]{fontenc}
 \RequirePackage[english]{babel}
-\RequirePackage{lipsum}
 \RequirePackage[top=0.8in, bottom=0.8in, left=0.5in, right=0.5in]{geometry}
 \RequirePackage{multicol}
 \RequirePackage{titlesec}
@@ -93,23 +108,38 @@
 \RequirePackage{graphicx, float}
 \RequirePackage{array, booktabs, colortbl}
 \RequirePackage{algorithm, algpseudocode}
-\PassOptionsToPackage{square,\citingstyle}{natbib}
-\RequirePackage{natbib}
+
+% ============================================================================
+% БИБЛИОГРАФИЯ (используем значения из опций)
+
+% Раньше здесь было [numbers, \brain@citingstyle] — из-за жёстко зашитого
+% numbers опции authoryear и super не работали.
+\RequirePackage[\brain@citingstyle]{natbib}
 \let\cite\citep
+
+% ГИПЕРССЫЛКИ
 \RequirePackage[
   colorlinks=true,
   citecolor=citecolor,
   linkcolor=linkcolor,
   urlcolor=urlcolor
 ]{hyperref}
+
 \RequirePackage[noabbrev]{cleveref}
 \crefname{equation}{}{}
 \Crefname{equation}{}{}
-\RequirePackage[most]{tcolorbox}
-\RequirePackage{csvsimple}
 
-% ========== Глобальные настройки ===========
-\ifshownumpages
+% ============================================================================
+% ЦВЕТНЫЕ БЛОКИ
+
+\RequirePackage{tcolorbox}
+\tcbuselibrary{skins,breakable,xparse}
+
+% ============================================================================
+% БАЗОВЫЕ НАСТРОЙКИ ДОКУМЕНТА
+
+% Номера страниц
+\ifbrain@shownumpages
   \pagestyle{fancy}
   \fancyhf{}
   \fancyfoot[C]{\thepage}
@@ -118,11 +148,16 @@
 \else
   \pagestyle{empty}
 \fi
+
+% Заголовки секций
 \titleformat{\section}{\large\bfseries\color{black}}{\thesection}{1em}{}
 \setlength{\parindent}{0pt}
 \captionsetup[table]{labelfont=bf, labelsep=colon, font=small}
+\captionsetup[figure]{labelfont=bf, labelsep=colon, font=small}
 
-% ========== Meta-информация ===========
+% ============================================================================
+% META-ИНФОРМАЦИЯ
+
 \providecommand{\papertitle}{}
 \providecommand{\brainauthors}{}
 \providecommand{\affils}{}
@@ -147,137 +182,54 @@
   }
 \ExplSyntaxOff
 
-% ========== Оформление блоков ===========
+% ============================================================================
+% ТИТУЛЬНЫЙ БЛОК
+
 \newtcolorbox{braintitlebox}{
-  colback=graybg,
-  colframe=gray!60,
-  arc=2mm,
-  boxrule=0.3pt,
+  colback=boxcolor!15,
+  colframe=boxcolor!60!black,
+  arc=\brain@arc,
+  boxrule=\brain@boxrule,
   width=\textwidth,
-  left=12pt, right=12pt, top=10pt, bottom=10pt,
-  enhanced,
+  left=\brain@titleleftpad, right=\brain@titlerightpad,
+  top=\brain@titletopad, bottom=\brain@titlebottompad,
 }
 
-\newtcolorbox{braintablebox}[1][]{
-  colback=graybg,
-  colframe=gray!60,
-  arc=2mm,
-  boxrule=0.3pt,
-  width=\columnwidth,
-  left=10pt, right=10pt, top=8pt, bottom=8pt,
-  enhanced,
-  #1
-}
-
-\let\oldtable\table
-\let\endoldtable\endtable
-
-\RenewDocumentEnvironment{table}{O{}}
-{
-  \oldtable[#1]
-  \begin{braintablebox}
-}
-{
-  \end{braintablebox}
-  \endoldtable
-}
-
-\RenewDocumentEnvironment{table*}{O{}}
-{
-  \makeatletter\@dblfloat{table}[#1]\makeatother
-  \begin{braintablebox}[width=\textwidth]
-}
-{
-  \end{braintablebox}
-  \makeatletter\end@dblfloat\makeatother
-}
-
-\renewenvironment{algorithm}[2][]{%
-  \refstepcounter{algorithm}%
-  \begin{tcolorbox}[%
-    colback=graybg,
-    colframe=gray!60,
-    arc=2mm,
-    boxrule=0.3pt,
-    width=\columnwidth,
-    left=10pt, right=10pt, top=8pt, bottom=8pt,
-    enhanced,
-    title={\textbf{Algorithm~\thealgorithm}: #2},%
-    fonttitle=\bfseries,
-    coltitle=black,
-    attach boxed title to top left={yshift=-2mm, xshift=4mm},%
-    boxed title style={colback=graybg, sharp corners, colframe=braincolor!40},%
-    #1
-  ]
-}{%
-  \end{tcolorbox}%
-}
-
-\newcommand{\highlightrow}{\rowcolor{braincolor!15}}
-\newcommand{\highlightcell}{\cellcolor{braincolor!15}}
-
-\tcbset{brainstyle/.style={
-  colback=graybg,
-  colframe=gray!60,
-  arc=2mm,
-  boxrule=0.3pt,
-  width=\columnwidth,
-  left=12pt, right=12pt, top=10pt, bottom=10pt,
-  enhanced,
-  attach boxed title to top left={yshift=-2mm, xshift=4mm},
-  boxed title style={colback=graybg, sharp corners, colframe=braincolor!40},
-  fonttitle=\bfseries,
-  coltitle=black
-}}
-
-\ExplSyntaxOn
-\NewDocumentCommand{\DeclareBrainTcbTheorem}{mm}{
-  \newtheorem{#1}{#2}
-  \RenewDocumentEnvironment{#1}{o +b}
-   {
-    \refstepcounter{#1}
-    \begin{tcolorbox}[
-      brainstyle,
-      title={\textbf{#2~\csname the#1\endcsname}\IfValueT{##1}{\ (\textit{##1})}},
-    ]
-    ##2
-    \end{tcolorbox}
-   }
-   {}
-}
-\ExplSyntaxOff
-
-\DeclareBrainTcbTheorem{theorem}{Theorem}
-\DeclareBrainTcbTheorem{assumption}{Assumption}
-\DeclareBrainTcbTheorem{definition}{Definition}
-
-% ========== Рендеринг ============
+% Имена файлов передаются С расширением, например {innopolis.pdf,mipt.pdf}.
+% Путь берётся из опции logopath (по умолчанию logos/).
 \newcommand{\additionallogos}[1]{%
-  \\[0.7em]
   \begin{minipage}[t]{0.9\columnwidth}
-    \renewcommand{\do}[1]{\includegraphics[height=1.2em]{logos/##1}\hspace{1.5em}}%
+    \renewcommand{\do}[1]{\includegraphics[height=1.2em]{\brain@logopath##1}\hspace{1.5em}}%
     \expandafter\docsvlist\expandafter{#1}%
   \end{minipage}%
-} 
+}
+
+\newif\ifbrain@anylogos
 
 \newcommand{\maketitlebox}{%
   \begin{center}
   \begin{braintitlebox}
-  \begin{minipage}[t]{0.75\textwidth}
-    \includegraphics[height=1.5em]{logos/mipt.png}\hspace{1.5em}
-    \includegraphics[height=1.5em]{logos/isp.png}\hspace{1.5em}
-    \includegraphics[height=1.5em]{logos/innopolis.png}
-  \end{minipage}%
-  \hfill
-  \begin{minipage}[t]{0.25\textwidth}
-    \raggedleft
-    \raisebox{.21em}{\textbf{\Large \textcolor{braincolor}{BRAIn Lab}}} \hspace{.5em}
-    \includegraphics[height=1.5em]{logos/brain.png}
-  \end{minipage}%
+  \brain@anylogosfalse
+  \ifbrain@nodefaultlogos\else
+    \begin{minipage}[t]{0.75\textwidth}
+      \includegraphics[height=1.5em]{\brain@logopath mipt.pdf}\hspace{1.5em}
+      \includegraphics[height=1.5em]{\brain@logopath isp.pdf}\hspace{1.5em}
+      \includegraphics[height=1.5em]{\brain@logopath innopolis.pdf}
+    \end{minipage}%
+    \hfill
+    \begin{minipage}[t]{0.25\textwidth}
+      \raggedleft
+      \includegraphics[height=2.1em]{\brain@logopath brain_logo.pdf}\hspace{.5em}
+      \includegraphics[height=1.5em]{\brain@logopath brain.pdf}
+    \end{minipage}%
+    \brain@anylogostrue
+  \fi
   \ifshowadditionallogos
-    \additionallogos{\additionallogoslist}
-  \fi%
-  \\[1.2em]
+    \ifbrain@anylogos\\[0.7em]\fi
+    \additionallogos{\additionallogoslist}%
+    \brain@anylogostrue
+  \fi
+  \ifbrain@anylogos\\[1.2em]\fi
   \begin{minipage}[t]{\textwidth}
     {\LARGE \textbf{\papertitle}} \\[1.2em]
     \textbf{\brainauthors} \\[0.3em]
@@ -285,22 +237,179 @@
   \end{minipage}
 
   \vspace{1.3em}
-
   \abstracttext
-
   \end{braintitlebox}
   \end{center}
   \vspace{1.5em}
 }
 
+% ============================================================================
+% ОКРУЖЕНИЯ
+
+% --- Таблицы ---
+\newtcolorbox{braintablebox}[2][]{
+  colback=boxcolor!15,
+  colframe=boxcolor!60!black,
+  arc=\brain@arc,
+  boxrule=\brain@boxrule,
+  width=#2,
+  left=\brain@tableleftpad, right=\brain@tablerightpad,
+  top=\brain@tabletopad, bottom=\brain@tablebottompad,
+  #1
+}
+
+\let\oldtable\table
+\let\endoldtable\endtable
+\expandafter\let\csname oldtablestar\expandafter\endcsname\csname table*\endcsname
+\expandafter\let\csname endoldtablestar\expandafter\endcsname\csname endtable*\endcsname
+
+% Ширина — необязательный аргумент в фигурных скобках.
+% Работают оба варианта: \begin{table}[ht]{0.6\columnwidth} и \begin{table}[ht]
+\newcommand{\brain@tablestart}[1]{\begin{center}\begin{braintablebox}{#1}}
+\newcommand{\brain@tablestarstart}[1]{\begin{center}\begin{braintablebox}{#1}}
+
+\RenewDocumentEnvironment{table}{o}
+{%
+  \IfValueTF{#1}{\oldtable[#1]}{\oldtable}%
+  \@ifnextchar\bgroup{\brain@tablestart}{\brain@tablestart{\columnwidth}}%
+}
+{%
+  \end{braintablebox}%
+  \end{center}%
+  \endoldtable%
+}
+
+\RenewDocumentEnvironment{table*}{o}
+{%
+  \IfValueTF{#1}{\oldtablestar[#1]}{\oldtablestar}%
+  \@ifnextchar\bgroup{\brain@tablestarstart}{\brain@tablestarstart{\textwidth}}%
+}
+{%
+  \end{braintablebox}%
+  \end{center}%
+  \endoldtablestar%
+}
+
+% --- Алгоритмы ---
+% Поддерживаются обе формы:
+%   \begin{algorithm}{\columnwidth}{Название}
+%   \begin{algorithm}{Название}
+% Различаются по тому, идёт ли за первой группой вторая.
+\ifbrain@darkheaders
+  \def\brain@algo@title@colback{braincolor}
+  \def\brain@algo@title@coltitle{white}
+\else
+  \def\brain@algo@title@colback{boxcolor!15}
+  \def\brain@algo@title@coltitle{black}
+\fi
+
+\newcommand{\brain@algo@open}[3]{%
+  \refstepcounter{algorithm}%
+  \begin{tcolorbox}[%
+    colback=boxcolor!10,
+    colframe=braincolor,
+    arc=\brain@arc,
+    boxrule=\brain@boxrule,
+    width=#2,
+    left=\brain@algorleftpad, right=\brain@algorrightpad,
+    top=\brain@algortopad, bottom=\brain@algorbottompad,
+    breakable,
+    enhanced jigsaw,
+    title={Algorithm~\thealgorithm: #3},
+    fonttitle=\bfseries,
+    coltitle=\brain@algo@title@coltitle,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=\brain@algo@title@colback, colframe=braincolor},
+    #1
+  ]%
+}
+
+\RenewDocumentEnvironment{algorithm}{O{} m}
+{%
+  \@ifnextchar\bgroup
+    {\brain@algo@open{#1}{#2}}%          первая группа была шириной
+    {\brain@algo@open{#1}{\columnwidth}{#2}}%  первая группа была названием
+}
+{%
+  \end{tcolorbox}%
+}
+
+% --- Теоремы ---
+\ifbrain@darkheaders
+  \tcbset{brainstyle/.style={
+    colback=boxcolor!15,
+    colframe=boxcolor!60!black,
+    arc=\brain@arc,
+    boxrule=\brain@boxrule,
+    left=\brain@titleleftpad, right=\brain@titlerightpad,
+    top=\brain@titletopad, bottom=\brain@titlebottompad,
+    breakable,
+    enhanced jigsaw,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=braincolor, colframe=braincolor},
+    coltitle=white,
+    fonttitle=\bfseries
+  }}
+\else
+  \tcbset{brainstyle/.style={
+    colback=boxcolor!15,
+    colframe=boxcolor!60!black,
+    arc=\brain@arc,
+    boxrule=\brain@boxrule,
+    left=\brain@titleleftpad, right=\brain@titlerightpad,
+    top=\brain@titletopad, bottom=\brain@titlebottompad,
+    breakable,
+    enhanced jigsaw,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=boxcolor!15, colframe=braincolor},
+    coltitle=black,
+    fonttitle=\bfseries
+  }}
+\fi
+
+% Сигнатура: [название][ширина]
+% Тело больше НЕ забирается как аргумент, поэтому \verb и verbatim внутри работают.
+\ExplSyntaxOn
+\NewDocumentCommand{\DeclareBrainTcbTheorem}{mm}{
+  \newtheorem{#1}{#2}
+  \RenewDocumentEnvironment{#1}{o O{\columnwidth}}
+   {
+    \refstepcounter{#1}
+    \begin{tcolorbox}[
+      brainstyle,
+      width=##2,
+      title={\textbf{#2~\csname the#1\endcsname}\IfValueT{##1}{\ (\textit{##1})}},
+    ]
+   }
+   {
+    \end{tcolorbox}
+   }
+}
+\ExplSyntaxOff
+
+\DeclareBrainTcbTheorem{theorem}{Theorem}
+\DeclareBrainTcbTheorem{assumption}{Assumption}
+\DeclareBrainTcbTheorem{definition}{Definition}
+\DeclareBrainTcbTheorem{lemma}{Lemma}
+\DeclareBrainTcbTheorem{proposition}{Proposition}
+\DeclareBrainTcbTheorem{corollary}{Corollary}
+\DeclareBrainTcbTheorem{remark}{Remark}
+
+% ============================================================================
+% ОСНОВНЫЕ ОКРУЖЕНИЯ
+
 \NewDocumentEnvironment{mainpart}{}
 {
-  \iftwocolumnmode \twocolumn[\maketitlebox] \else \maketitlebox \fi
+  \ifbrain@twocolumnmode
+    \twocolumn[\maketitlebox]
+  \else
+    \maketitlebox
+  \fi
 }
 {
-  \bibliographystyle{\bibliostyle}
-  \bibliography{\bibfile}
-  \iftwocolumnmode \onecolumn \fi
+  \bibliographystyle{\brain@bibliostyle}
+  \bibliography{\brain@bibfile}
+  \ifbrain@twocolumnmode \onecolumn \fi
 }
 
 \NewDocumentEnvironment{appendixpart}{}
@@ -308,21 +417,20 @@
   \clearpage
   \appendix
   \begin{tcolorbox}[
-    colback=graybg,
-    colframe=gray!60,
+    colback=boxcolor!15,
+    colframe=boxcolor!60!black,
     width=\columnwidth,
-    arc=2mm,
-    boxrule=0.3pt,
+    arc=\brain@arc,
+    boxrule=\brain@boxrule,
     left=10pt, right=10pt, top=6pt, bottom=6pt,
-    enhanced,
+    enhanced jigsaw,
   ]
   \centering
   \textbf{\Large Appendix} \\
   {\small Supplementary Materials for \textit{\papertitle}}
   \end{tcolorbox}
   \vspace{1em}
-  % \iftwocolumnmode \begin{multicols}{2} \fi
 }
-{
-  % \iftwocolumnmode \end{multicols} \fi
-}
+{}
+
+\endinput
