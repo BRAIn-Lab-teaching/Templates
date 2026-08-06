@@ -1,36 +1,37 @@
-% ========================
-% Определение множеств
-% ========================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{shortcuts}[2025/06/02 v2.0 BRAIn Lab Shortcuts]
 
-% Калиграфические
-\newcommand{\cX}{\ensuremath{\mathcal{X}}}
-\newcommand{\cM}{\ensuremath{\mathcal{M}}}
-\newcommand{\cN}{\ensuremath{\mathcal{N}}}
-\newcommand{\cT}{\ensuremath{\mathcal{T}}}
-\newcommand{\cP}{\ensuremath{\mathcal{P}}}
-\newcommand{\cO}{\ensuremath{\mathcal{O}}}
-\newcommand{\cL}{\ensuremath{\mathcal{L}}}
-\newcommand{\cD}{\ensuremath{\mathcal{D}}}
-\newcommand{\cF}{\ensuremath{\mathcal{F}}}
-\newcommand{\cC}{\ensuremath{\mathcal{C}}}
-\newcommand{\cA}{\ensuremath{\mathcal{A}}}
+\RequirePackage{amsmath, amssymb}
+\RequirePackage{xparse}
+
+% ========== Оптимизированные математические обозначения ==========
+% Калиграфические (быстрые макросы)
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cA}{\mathcal{A}}
 
 % Двойная линия
-\newcommand{\N}{\ensuremath{\mathbb{N}}} 
-\newcommand{\Z}{\ensuremath{\mathbb{Z}}} 
-\newcommand{\Q}{\ensuremath{\mathbb{Q}}} 
-\newcommand{\R}{\ensuremath{\mathbb{R}}}
-\newcommand{\Ss}{\ensuremath{\mathbb{S}}} 
-\newcommand{\Rd}{\ensuremath{\R^{d}}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Ss}{\mathbb{S}}
+\newcommand{\Rd}{\R^{d}}
 
-
-% ========================
-% Часто используемые обозначения
-% ========================
-\newcommand{\eps}{\ensuremath{\varepsilon}}
+% Часто используемые
+\newcommand{\eps}{\varepsilon}
 \newcommand{\such}{\mid}
 \newcommand{\variance}{\mathbb{D}}
 
+% Операторы
 \DeclareMathOperator*{\argmin}{argmin}
 \DeclareMathOperator*{\argmax}{argmax}
 \DeclareMathOperator*{\softmax}{softmax}
@@ -52,94 +53,127 @@
 \DeclareMathOperator*{\LMO}{LMO}
 \DeclareMathOperator*{\gap}{gap}
 
-% ========================
-% Удобные макросы
-% ========================
+% Физика и матрицы
+\DeclareMathOperator{\gradm}{grad}
+\DeclareMathOperator{\Grad}{Grad}
+\DeclareMathOperator{\divg}{div}
+\DeclareMathOperator{\Div}{Div}
+\DeclareMathOperator{\curl}{curl}
+\DeclareMathOperator{\Curl}{Curl}
+\DeclareMathOperator{\laplacian}{\nabla^2}
+\DeclareMathOperator{\Laplacian}{\nabla^2}
+\DeclareMathOperator{\boxop}{\Box}
+\DeclareMathOperator{\dalembertian}{\Box}
+\DeclareMathOperator{\trace}{tr}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\detm}{det}
+\DeclareMathOperator{\adj}{adj}
 
-% Суммы
-\newcommand{\sumione}[1]{\ensuremath{\sum_{i=1}^{#1}}}
-\newcommand{\sumjone}[1]{\ensuremath{\sum_{j=1}^{#1}}}
+% ========== Нормы ==========
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\normtwo}[1]{\|#1\|_2}
+\newcommand{\normone}[1]{\|#1\|_1}
+\newcommand{\norminf}[1]{\|#1\|_\infty}
+\newcommand{\frobnorm}[1]{\|#1\|_F}
+\newcommand{\opnorm}[1]{\|#1\|_{\text{op}}}
 
-% Определение функции
-\newcommand{\map}[3]{\ensuremath{#1 : #2 \to #3}}
+% ========== Бра-кет нотация ==========
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\braket}[2]{\langle #1 | #2 \rangle}
+\newcommand{\braketbra}[3]{\langle #1 | #2 \rangle \langle #3 |}
+\newcommand{\ketbra}[2]{|#1\rangle\langle #2|}
+\newcommand{\matrixel}[3]{\langle #1 | #2 | #3 \rangle}
 
-% Следует и равносильно
-\newcommand{\hence}{\ensuremath{\ \Longrightarrow\ }}
-\newcommand{\nas}{\ensuremath{\ \Longleftrightarrow\ }}
+% ========== Скобки ==========
+\newcommand{\qty}[1]{\left(#1\right)}
+\newcommand{\bqty}[1]{\left[#1\right]}
+\newcommand{\Bqty}[1]{\left\{#1\right\}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\setof}[2]{\left\{#1 \mid #2\right\}}
+\newcommand{\emptyv}{\varnothing}
 
-% Транспонирование
+% ========== Векторы ==========
+\newcommand{\vb}[1]{\mathbf{#1}}
+\newcommand{\va}[1]{\vec{#1}}
+\newcommand{\vdot}{\cdot}
+\newcommand{\vtimes}{\times}
+\newcommand{\vnabla}{\nabla}
+
+% ========== Оптимизированный \trans ==========
 \NewDocumentCommand{\trans}{s d()}{%
-  \ensuremath{%
-    \IfBooleanTF{#1}{%
-      % Если звездочка указана: без скобок
-      #2^\top%
-    }{%
-      % Если звездочка не указана: с масштабируемыми скобками
-      \left( #2 \right)^\top%
-    }%
-  }%
+  \IfBooleanTF{#1}{#2^\top}{(#2)^\top}%
 }
 
-% Определение скалярного произведения
-\DeclareDocumentCommand{\scalar}{m}{%
-  \ensuremath{\left\langle #1 \right\rangle}%
+% ========== Оптимизированный \expect ==========
+\DeclareMathOperator{\E}{\mathbb{E}}
+\DeclareMathOperator{\Cov}{Cov}
+\DeclareMathOperator{\Corr}{Corr}
+\DeclareMathOperator{\Bias}{Bias}
+
+% \expect{X} -> E[X];  \expect_{x}{X} -> E_x[X];  \expect{X | Y} -> E[X | Y]
+% ВАЖНО: определяется вне \ExplSyntaxOn, иначе `_` в спецификации e{_^}
+% имеет категорию буквы и подстрочный индекс не распознаётся.
+\newcommand{\brainexpectbody}[2]{%
+  \IfNoValueTF{#2}%
+    {\left[ #1 \right]}%
+    {\left[ #1 \,\middle|\, #2 \right]}%
 }
-
-\usepackage{xifthen}
-
-% Главная команда
-\DeclareDocumentCommand{\expect}{e{_^} >{\SplitArgument{1}{|}} m}{%
-  \expandafter\expect@split\expandafter{#1}{#2}#3
-}
-
-% Вспомогательная функция
-\DeclareDocumentCommand{\expect@split}{m m m m}{
+\NewDocumentCommand{\expect}{ e{_^} >{\SplitArgument{1}{|}} m }{%
   \mathbb{E}%
-  \IfNoValueF{#1}{_{#1}}%
-  \IfNoValueF{#2}{^{#2}}%
-  \IfNoValueTF{#4}
-    {\left[ #3 \right]}%
-    {\left[ #3 \,\middle|\, #4 \right]}
+  \IfValueT{#1}{_{#1}}%
+  \IfValueT{#2}{^{#2}}%
+  \brainexpectbody#3%
 }
 
-% ========================
-% Макросы для функций с индексами
-% ========================
+% ========== Производные ==========
+\newcommand{\dv}[2]{\frac{d#1}{d#2}}
+\newcommand{\dvtwo}[2]{\frac{d^2#1}{d#2^2}}
+\newcommand{\pdv}[2]{\frac{\partial#1}{\partial#2}}
+\newcommand{\pdvtwo}[2]{\frac{\partial^2#1}{\partial#2^2}}
+\newcommand{\pdvmix}[3]{\frac{\partial^2#1}{\partial#2\partial#3}}
 
-% Создает макросы для функций с возможностью индексов и масштабируемыми скобками
-\newcommand{\newfuncmacro}[1]{%
-  \expandafter\DeclareDocumentCommand\csname#1\endcsname{e{^_}D(){}}{%
-      #1%
-      \IfNoValueF{##1}{^{##1}}%
-      \IfNoValueF{##2}{_{##2}}%
-      \IfBlankF{##3}{\qty(##3)}%
+% ========== Гессиан и градиент ==========
+\newcommand{\grad}[1]{\nabla #1}
+\newcommand{\hess}[1]{\nabla^2 #1}
+\newcommand{\Hess}[1]{\nabla^2 #1}
+\newcommand{\hessian}[1]{\mathbf{H}_{#1}}
+\newcommand{\Hessian}[1]{\mathbf{H}_{#1}}
+\newcommand{\hessel}[3]{\frac{\partial^2 #1}{\partial #2 \partial #3}}
+\newcommand{\hessdiag}[2]{\frac{\partial^2 #1}{\partial #2^2}}
+
+% ========== Другие полезные макросы ==========
+\newcommand{\sumione}[1]{\sum_{i=1}^{#1}}
+\newcommand{\sumjone}[1]{\sum_{j=1}^{#1}}
+\newcommand{\map}[3]{#1 : #2 \to #3}
+\newcommand{\hence}{\Longrightarrow}
+\newcommand{\nas}{\Longleftrightarrow}
+\newcommand{\iid}{\overset{\text{i.i.d.}}{\sim}}
+
+% ========== Доказательства ==========
+\newenvironment{proofnec}{\par\noindent\textcircled{$\Rightarrow$}\quad}{\par}
+\newenvironment{proofsuf}{\par\noindent\textcircled{$\Leftarrow$}\quad}{\par}
+\newenvironment{proofnas}{\par\noindent\textcircled{$\Leftrightarrow$}\quad}{\par}
+
+% ========== Функции с индексами ==========
+% #1 - имя макроса, #2 - печатаемый символ функции.
+% Использование: \funcf^{a}_{i}(x) -> f^{a}_{i}\left(x\right)
+% Определяется вне \ExplSyntaxOn: там `_` имеет категорию буквы и
+% спецификация e{^_} перестаёт распознавать подстрочный индекс.
+\newcommand{\brainnewfunc}[2]{%
+  \expandafter\NewDocumentCommand\csname #1\endcsname{ e{^_} D(){} }{%
+    #2%
+    \IfValueT{##1}{^{##1}}%
+    \IfValueT{##2}{_{##2}}%
+    \IfBlankF{##3}{\qty{##3}}%
   }%
 }
+\brainnewfunc{funcf}{f}
+\brainnewfunc{funcg}{g}
+\brainnewfunc{funch}{h}
 
-
-
-% Определение функций f, g, h с индексами 
-\newfuncmacro{f}
-\newfuncmacro{g}
-\newfuncmacro{h}
-
-
-% ========================
-% Набор текста
-% ========================
-
-% Бэкслэш для верных переносов слов. Пример: вместо кот/собака -> кот\bslash собака
 \newcommand{\bslash}{/\hspace{0pt}}
 
-% Док-ва proofnec -- необходимо, proofsuf -- достаточно, proofnas -- необходимо и достаточно
-\newenvironment{proofnec}{%
-  \par\noindent\textcircled{$\Rightarrow$}\quad
-}{\par}
-
-\newenvironment{proofsuf}{%
-  \par\noindent\textcircled{$\Leftarrow$}\quad
-}{\par}
-
-\newenvironment{proofnas}{%
-  \par\noindent\textcircled{$\Leftrightarrow$}\quad
-}{\par}
+\endinput

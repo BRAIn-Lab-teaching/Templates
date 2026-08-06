@@ -1,127 +1,212 @@
-% brainlab.sty -- пакет оформления BRAIn Lab
-
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesExplPackage
-  {brainposter}
-  {2025/06/02}
-  {0.2}
-  {BRAIn Lab formatting package}
+\ProvidesPackage{brainposter}[2025/06/02 v3.0 BRAIn Lab Poster Package]
 
+% Логотипы сохранены как PDF 1.6+; поднимаем версию вывода до того, как
+% что-либо будет записано в PDF, иначе pdfTeX сыплет warning'ами.
+\ifdefined\pdfminorversion \pdfminorversion=7 \fi
+
+% ============================================================================
+% 1. ПОДКЛЮЧЕНИЕ НЕОБХОДИМЫХ ПАКЕТОВ
+% ============================================================================
+\RequirePackage{kvoptions}
 \RequirePackage{xcolor}
-\RequirePackage{xkeyval}
 \RequirePackage{etoolbox}
-\RequirePackage{expl3}
-\RequirePackage{l3keys2e}
-\RequirePackage{xparse}
-\RequirePackage{xstring}
-\RequirePackage{multicol}
-\RequirePackage{geometry}
+\RequirePackage{graphicx}
 \RequirePackage{svg}
-\RequirePackage{physics}
-\RequirePackage{shortcuts}
-
-% ========== Опции пакета ============
-\definecolor{braincolor}{RGB}{190,32,240} % default brain color
-\definecolor{graybg}{RGB}{245,245,250}    % default bg color
-
-\newif\if@linkcolorset
-\newif\if@citecolorset
-\newif\if@urlcolorset
-
-\def\bibliostyle{plainnat}
-\def\bibfile{references}
-\def\citingstyle{authoryear}
-
-\DeclareOptionX{bgcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{graybg}{RGB}{#1}}
-    {\colorlet{graybg}{#1}}
-}
-
-\DeclareOptionX{braincolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{braincolor}{RGB}{#1}}
-    {\colorlet{braincolor}{#1}}
-}
-
-\DeclareOptionX{linkcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{linkcolor}{RGB}{#1}}
-    {\colorlet{linkcolor}{#1}}\@linkcolorsettrue
-}
-
-\DeclareOptionX{citecolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{citecolor}{RGB}{#1}}
-    {\colorlet{citecolor}{#1}}\@citecolorsettrue
-}
-
-\DeclareOptionX{urlcolor}{
-  \IfSubStr{#1}{,}
-    {\definecolor{urlcolor}{RGB}{#1}}
-    {\colorlet{urlcolor}{#1}}\@urlcolorsettrue
-}
-\DeclareOptionX{citingstyle}{\def\citingstyle{#1}}
-\DeclareOptionX{bibliostyle}{\def\bibliostyle{#1}}
-\DeclareOptionX{bibfile}{\def\bibfile{#1}}
-
-
-\newlength{\posterwidth}
-\newlength{\posterheight}
-\newcommand{\postercolumns}{4}
-
-\DeclareOptionX{posterwidth}{\setlength{\posterwidth}{#1}}
-\DeclareOptionX{posterheight}{\setlength{\posterheight}{#1}}
-\DeclareOptionX{postercolumns}{\renewcommand{\postercolumns}{#1}}
-
-\ProcessOptionsX\relax
-
-% fallback to braincolor if not explicitly set
-\if@linkcolorset\else\colorlet{linkcolor}{braincolor}\fi
-\if@citecolorset\else\colorlet{citecolor}{braincolor}\fi
-\if@urlcolorset\else\colorlet{urlcolor}{blue}\fi
-
-% ========== Базовые подключения ===========
-\RequirePackage{inputenc}
-\RequirePackage[T2A]{fontenc}
-\RequirePackage[english]{babel}
-\RequirePackage{lipsum}
+\RequirePackage{tikz}
+\RequirePackage{multicol}
+\RequirePackage{calc}
+\RequirePackage{enumitem}
 \RequirePackage{titlesec}
+\RequirePackage{geometry}
+% --- Кодировка и шрифты ---
+% ВАЖНО: [T2A] со стандартным Computer Modern НЕ РАБОТАЕТ — LaTeX пытается
+% сгенерировать растровые шрифты (lh/labx*) и падает с
+%   "Font T2A/cmr/bx/n/24.88 not loadable: Metric (TFM) file not found".
+% Поэтому берём cm-lgc: это Type1-версия Computer Modern с кириллицей —
+% внешний вид тот же, но текст можно писать и по-русски, и по-английски.
+% Если cm-lgc не установлен (tlmgr install cm-lgc), откатываемся на
+% T1 + Latin Modern: латиница работает, кириллица даст ошибку
+% "Unicode character ... not set up for use with LaTeX".
+\IfFileExists{cmlgc.sty}{%
+  \RequirePackage[T2A]{fontenc}%
+  \RequirePackage{cmlgc}%
+}{%
+  \RequirePackage[T1]{fontenc}%
+  \RequirePackage{lmodern}%
+  \PackageWarningNoLine{brainposter}{%
+    Package cm-lgc not found, falling back to T1 + Latin Modern.\MessageBreak
+    Cyrillic text will NOT compile. Install it with: tlmgr install cm-lgc%
+  }%
+}
+\RequirePackage[english]{babel}
 \RequirePackage[hypcap=false]{caption}
-\RequirePackage{fancyhdr}
-\RequirePackage{authblk}
 \RequirePackage{amsmath, amssymb, amsthm}
-\RequirePackage{graphicx, float}
+\RequirePackage{float}
 \RequirePackage{array, booktabs, colortbl}
 \RequirePackage{algorithm, algpseudocode}
-\PassOptionsToPackage{square,\citingstyle}{natbib}
+\RequirePackage{shortcuts}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{hyperref}
+\RequirePackage[noabbrev]{cleveref}
+% natbib загружается ниже (секция 7) — после \ProcessKeyvalOptions,
+% иначе значение citingstyle ещё не известно и опция теряется.
+
+% ============================================================================
+% 2. НАСТРОЙКА KVOPTIONS
+% ============================================================================
+\SetupKeyvalOptions{
+  family=brain,
+  prefix=brain@
+}
+
+% ============================================================================
+% 3. ОПЦИИ ПАКЕТА
+% ============================================================================
+
+% --- Размеры постера ---
+\DeclareStringOption[297mm]{posterwidth}
+\DeclareStringOption[210mm]{posterheight}
+\DeclareStringOption[4]{postercolumns}
+
+% Три основных цвета (временные, будут переопределены)
+\definecolor{braincolor}{RGB}{141,72,102}
+\definecolor{boxcolor}{RGB}{157,225,252}
+\definecolor{highlightcolor}{RGB}{255,210,90}
+
+% --- Библиография ---
+\DeclareStringOption[plainnat]{bibliostyle}
+\DeclareStringOption[references]{bibfile}
+\DeclareStringOption[authoryear]{citingstyle}
+
+% --- Отступы и рамки ---
+\DeclareStringOption[0.3pt]{boxrule}
+\DeclareStringOption[2mm]{arc}
+\DeclareStringOption[12pt]{titleleftpad}
+\DeclareStringOption[12pt]{titlerightpad}
+\DeclareStringOption[10pt]{titletopad}
+\DeclareStringOption[10pt]{titlebottompad}
+\DeclareStringOption[10pt]{tableleftpad}
+\DeclareStringOption[10pt]{tablerightpad}
+\DeclareStringOption[8pt]{tabletopad}
+\DeclareStringOption[8pt]{tablebottompad}
+\DeclareStringOption[10pt]{algorleftpad}
+\DeclareStringOption[10pt]{algorrightpad}
+\DeclareStringOption[8pt]{algortopad}
+\DeclareStringOption[8pt]{algorbottompad}
+
+% --- Стиль алгоритмов, таблиц и рисунков ---
+\DeclareBoolOption[false]{boxedalgorithm}
+\DeclareBoolOption[false]{boxedtable}
+\DeclareBoolOption[false]{boxedfigure}
+
+% --- Выбор тем для шапок ---
+\DeclareStringOption[light]{boxheaders}
+
+% --- QR-коды ---
+\DeclareStringOption[qr]{qrdir}       % папка с картинками QR-кодов
+\DeclareStringOption[6em]{qrsize}     % максимальная сторона одного кода
+\DeclareStringOption[3.5em]{qrminsize}% минимальная сторона (дальше — перенос)
+\DeclareStringOption[1.5em]{qrgap}    % промежуток между кодами
+
+% ============================================================================
+% 4. ОБРАБОТКА ОПЦИЙ
+% ============================================================================
+\ProcessKeyvalOptions{brain}
+
+% ============================================================================
+% 5. ОПРЕДЕЛЕНИЕ ЦВЕТОВ
+% ============================================================================
+
+% Основные цвета
+\definecolor{braincolor}{RGB}{141,72,102}
+\definecolor{boxcolor}{RGB}{157,225,252}
+\definecolor{highlightcolor}{RGB}{255,210,90}
+
+% Производные цвета
+\colorlet{braincolorlight}{braincolor!15}
+\colorlet{braincolorultralight}{braincolor!5}
+\colorlet{braincolormedium}{braincolor!40}
+\colorlet{boxcolorlight}{boxcolor!30}
+\colorlet{boxcolorultralight}{boxcolor!10}
+
+% Цвета ссылок
+\colorlet{linkcolor}{braincolor}
+\colorlet{citecolor}{braincolor}
+\colorlet{urlcolor}{blue}
+
+% Цвета для выделения таблиц
+\colorlet{highlightA}{braincolor!40}           % Фиолетовый 30% - для выделения A
+\colorlet{highlightB}{boxcolor!50}             % Голубой 50% - для выделения B
+\colorlet{highlightC}{highlightcolor!40}       % Жёлтый 40% - для выделения C
+
+% Команды для выделения
+\newcommand{\highlightrowA}{\rowcolor{highlightA}}
+\newcommand{\highlightrowB}{\rowcolor{highlightB}}
+\newcommand{\highlightrowC}{\rowcolor{highlightC}}
+\newcommand{\highlightcellA}{\cellcolor{highlightA}}
+\newcommand{\highlightcellB}{\cellcolor{highlightB}}
+\newcommand{\highlightcellC}{\cellcolor{highlightC}}
+\newcommand{\highlightrow}{\rowcolor{highlightA}}
+\newcommand{\highlightcell}{\cellcolor{highlightA}}
+
+% ============================================================================
+% 6. ГЕОМЕТРИЯ СТРАНИЦЫ
+% ============================================================================
+\geometry{
+  paperwidth=\brain@posterwidth,
+  paperheight=\brain@posterheight,
+  margin=1cm
+}
+
+% На постере не нужны колонтитулы и номер страницы
+\AtBeginDocument{\pagestyle{empty}\thispagestyle{empty}}
+
+% ============================================================================
+% 7. БИБЛИОГРАФИЯ
+% ============================================================================
+\PassOptionsToPackage{square,\brain@citingstyle}{natbib}
 \RequirePackage{natbib}
 \let\cite\citep
-\RequirePackage[
+
+% ============================================================================
+% 8. ГИПЕРССЫЛКИ
+% ============================================================================
+\hypersetup{
   colorlinks=true,
   citecolor=citecolor,
   linkcolor=linkcolor,
   urlcolor=urlcolor
-]{hyperref}
-\RequirePackage[noabbrev]{cleveref}
+}
 \crefname{equation}{}{}
 \Crefname{equation}{}{}
-\RequirePackage[most]{tcolorbox}
-\RequirePackage{csvsimple}
 
-% ========== Глобальные настройки ===========
-\pagestyle{empty}
-\titleformat{\section}{\large\bfseries\color{black}}{\thesection}{1em}{}
-\setlength{\parindent}{0pt}
-\captionsetup[table]{labelfont=bf, labelsep=colon, font=small}
+% ============================================================================
+% 9. НАСТРОЙКИ TCOLORBOX
+% ============================================================================
+\tcbuselibrary{skins, breakable}
 
-\geometry{
-  paperwidth=\posterwidth,
-  paperheight=\posterheight,
-  margin=1cm
-}
+% ============================================================================
+% 10. ВСПОМОГАТЕЛЬНЫЕ КОМАНДЫ
+% ============================================================================
+\newcommand{\makeanchor}[1]{\hypertarget{#1}{}}
+\newcommand{\linkto}[2]{\hyperlink{#1}{#2}}
 
-% ========== Meta-информация ===========
+% ============================================================================
+% 11. НАСТРОЙКИ СЕКЦИЙ
+% ============================================================================
+\colorlet{sectioncolor}{braincolor}
+\setcounter{secnumdepth}{0}
+
+\titleformat{\section}
+  {\Large\bfseries\color{sectioncolor}}
+  {}{0em}
+  {}
+  [\vspace{-0.5em}\rule{0.7\linewidth}{0.8pt}\vspace{-0.5em}]
+
+% ============================================================================
+% 12. META-ИНФОРМАЦИЯ
+% ============================================================================
 \providecommand{\papertitle}{}
 \providecommand{\brainauthors}{}
 \providecommand{\affils}{}
@@ -141,116 +226,211 @@
     title      .code:n = { \renewcommand{\papertitle}{#1} },
     authors    .code:n = { \renewcommand{\brainauthors}{#1} },
     affiliations .code:n = { \renewcommand{\affils}{#1} },
-    baselogos .code:n = { \renewcommand{\baselogoslist}{#1} },
+    baselogos  .code:n = { \renewcommand{\baselogoslist}{#1} },
     additionallogos .code:n = { \renewcommand{\additionallogoslist}{#1}\showadditionallogostrue },
   }
 \ExplSyntaxOff
 
-% ========== Оформление блоков ===========
-% \newtcolorbox{braintitlebox}{
-%   colback=graybg,
-%   colframe=gray!60,
-%   arc=2mm,
-%   boxrule=0.3pt,
-%   width=\textwidth,
-%   left=12pt, right=12pt, top=10pt, bottom=10pt,
-%   enhanced,
-% }
+% ============================================================================
+% 13. ОФОРМЛЕНИЕ БЛОКОВ
+% ============================================================================
+
+% --- Титульный блок ---
 \newtcolorbox{braintitlebox}{
-  interior style={
-    left color=braincolor!40!white,
-    right color=braincolor!5!white
-  },
+  colback=braincolor,
   arc=0mm,
   frame hidden,
   boxrule=0pt,
   width=\paperwidth,
-  left=1cm, right=1cm, top=0.5cm, bottom=12pt,
+  left=1cm, right=1cm, top=0.5cm, bottom=8pt,
   enhanced,
   fontupper=\bfseries,
+  coltext=white,
 }
 
+% --- Блок для таблиц ---
 \newtcolorbox{braintablebox}[1][]{
-  colback=graybg,
-  colframe=gray!60,
-  arc=2mm,
-  boxrule=0.3pt,
+  colback=boxcolorultralight,
+  colframe=boxcolor!60!black,
+  arc=\brain@arc,
+  boxrule=\brain@boxrule,
   width=\columnwidth,
-  left=10pt, right=10pt, top=8pt, bottom=8pt,
+  left=\brain@tableleftpad, 
+  right=\brain@tablerightpad,
+  top=\brain@tabletopad, 
+  bottom=\brain@tablebottompad,
   enhanced,
   #1
 }
 
-\let\oldtable\table
-\let\endoldtable\endtable
-
-\RenewDocumentEnvironment{table}{O{}}
-{
-  \oldtable[#1]
-  \begin{braintablebox}
-}
-{
-  \end{braintablebox}
-  \endoldtable
-}
-
-\RenewDocumentEnvironment{table*}{O{}}
-{
-  \makeatletter\@dblfloat{table}[#1]\makeatother
-  \begin{braintablebox}[width=\textwidth]
-}
-{
-  \end{braintablebox}
-  \makeatletter\end@dblfloat\makeatother
-}
-
-\renewenvironment{algorithm}[2][]{%
-  \refstepcounter{algorithm}%
-  \begin{tcolorbox}[%
-    colback=braincolor!5!white,
-    colframe=gray!60,
-    arc=2mm,
-    boxrule=0.3pt,
-    width=\columnwidth,
-    left=10pt, right=10pt, top=8pt, bottom=8pt,
-    enhanced,
-    title={\textbf{Algorithm~\thealgorithm}: #2},%
-    fonttitle=\bfseries,
-    coltitle=black,
-    attach boxed title to top left={yshift=-2mm, xshift=4mm},%
-  boxed title style={colback=braincolor!20!white,, sharp corners, colframe=braincolor!40},
-    #1
-  ]
+% --- Стиль 1: Минималистичная таблица ---
+\newenvironment{tableplain}[1][]
+{%
+  \par
+  \vspace{0.5em}
+  \centering
 }{%
-  \end{tcolorbox}%
+  \par
+  \vspace{0.5em}
 }
 
-\newcommand{\highlightrow}{\rowcolor{braincolor!15}}
-\newcommand{\highlightcell}{\cellcolor{braincolor!15}}
+% --- Стиль 2: Таблица в рамке ---
+\newenvironment{tableboxed}[1][]
+{%
+  \begin{braintablebox}[#1]
+  \centering
+}{%
+  \end{braintablebox}
+}
 
-\tcbset{brainstyle/.style={
-  colback=braincolor!5!white,
-  colframe=gray!60,
-  arc=2mm,
-  boxrule=0.3pt,
-  width=\columnwidth,
-  left=12pt, right=12pt, top=10pt, bottom=10pt,
-  enhanced,
-  attach boxed title to top left={yshift=-2mm, xshift=4mm},
-  boxed title style={colback=braincolor!20!white,, sharp corners, colframe=braincolor!40},
-  fonttitle=\bfseries,
-  coltitle=black
-}}
+% --- Выбор стиля таблиц ---
+\ifbrain@boxedtable
+  \let\table\tableboxed
+  \let\endtable\endtableboxed
+\else
+  \let\table\tableplain
+  \let\endtable\endtableplain
+\fi
 
+% --- Рисунки ---
+% Стандартный figure — это float, а плавающие объекты внутри multicols
+% не поддерживаются (уезжают в конец документа). Поэтому figure, как и
+% table выше, переопределяется в обычное нефлотящее окружение.
+% Подпись ставится через \captionof{figure}{...}.
+% Отступы в рамке берутся из тех же опций, что и у таблиц (table*pad).
+\newenvironment{figureplain}[1][]
+{%
+  \par
+  \vspace{0.5em}
+  \centering
+}{%
+  \par
+  \vspace{0.5em}
+}
+
+\newenvironment{figureboxed}[1][]
+{%
+  \begin{braintablebox}[#1]
+  \centering
+}{%
+  \end{braintablebox}
+}
+
+\ifbrain@boxedfigure
+  \let\figure\figureboxed
+  \let\endfigure\endfigureboxed
+\else
+  \let\figure\figureplain
+  \let\endfigure\endfigureplain
+\fi
+
+% ============================================================================
+% 14. ОПРЕДЕЛЕНИЕ СТИЛЯ BRAINSTYLEBOX
+% ============================================================================
+\def\brain@tmp{light}
+\ifx\brain@boxheaders\brain@tmp
+  % LIGHT
+  \tcbset{brainstylebox/.style={
+    colback=boxcolorultralight,
+    colframe=boxcolor!60!black,
+    arc=\brain@arc,
+    boxrule=\brain@boxrule,
+    width=\columnwidth,
+    left=\brain@titleleftpad, 
+    right=\brain@titlerightpad,
+    top=\brain@titletopad, 
+    bottom=\brain@titlebottompad,
+    enhanced,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={
+      colback=boxcolor!15,
+      colframe=braincolor,
+      coltitle=black
+    },
+    fonttitle=\bfseries\color{black}
+  }}
+\else
+  \def\brain@tmp{dark}
+  \ifx\brain@boxheaders\brain@tmp
+    % DARK
+    \tcbset{brainstylebox/.style={
+      colback=boxcolorultralight,
+      colframe=boxcolor!60!black,
+      arc=\brain@arc,
+      boxrule=\brain@boxrule,
+      width=\columnwidth,
+      left=\brain@titleleftpad, 
+      right=\brain@titlerightpad,
+      top=\brain@titletopad, 
+      bottom=\brain@titlebottompad,
+      enhanced,
+      attach boxed title to top left={yshift=-2mm, xshift=4mm},
+      boxed title style={
+        colback=braincolor,
+        colframe=braincolor,
+        coltitle=white
+      },
+      fonttitle=\bfseries
+    }}
+  \else
+    \def\brain@tmp{accent}
+    \ifx\brain@boxheaders\brain@tmp
+      % ACCENT
+      \tcbset{brainstylebox/.style={
+        colback=boxcolorultralight,
+        colframe=boxcolor!60!black,
+        arc=\brain@arc,
+        boxrule=\brain@boxrule,
+        width=\columnwidth,
+        left=\brain@titleleftpad, 
+        right=\brain@titlerightpad,
+        top=\brain@titletopad, 
+        bottom=\brain@titlebottompad,
+        enhanced,
+        attach boxed title to top left={yshift=-2mm, xshift=4mm},
+        boxed title style={
+          colback=highlightcolor,
+          colframe=highlightcolor!70!black,
+          coltitle=black
+        },
+        fonttitle=\bfseries\color{black}
+      }}
+    \else
+      % FALLBACK - light
+      \tcbset{brainstylebox/.style={
+        colback=boxcolorultralight,
+        colframe=boxcolor!60!black,
+        arc=\brain@arc,
+        boxrule=\brain@boxrule,
+        width=\columnwidth,
+        left=\brain@titleleftpad, 
+        right=\brain@titlerightpad,
+        top=\brain@titletopad, 
+        bottom=\brain@titlebottompad,
+        enhanced,
+        attach boxed title to top left={yshift=-2mm, xshift=4mm},
+        boxed title style={
+          colback=boxcolor!15,
+          colframe=braincolor,
+          coltitle=black
+        },
+        fonttitle=\bfseries\color{black}
+      }}
+    \fi
+  \fi
+\fi
+
+% ============================================================================
+% 15. ТЕОРЕМЫ
+% ============================================================================
 \ExplSyntaxOn
 \NewDocumentCommand{\DeclareBrainTcbTheorem}{mm}{
   \newtheorem{#1}{#2}
   \RenewDocumentEnvironment{#1}{o +b}
    {
-    \refstepcounter{#1}
     \begin{tcolorbox}[
-      brainstyle,
-      title={\textbf{#2~\csname the#1\endcsname}\IfValueT{##1}{\ (\textit{##1})}},
+      brainstylebox,
+      title={\textbf{#2}\IfValueT{##1}{\ (\textit{##1})}},
     ]
     ##2
     \end{tcolorbox}
@@ -263,7 +443,107 @@
 \DeclareBrainTcbTheorem{assumption}{Assumption}
 \DeclareBrainTcbTheorem{definition}{Definition}
 
-% ========== Рендеринг ============
+% ============================================================================
+% 16. ПОЛЬЗОВАТЕЛЬСКИЕ БЛОКИ
+% ============================================================================
+\newenvironment{custombox}[2][]
+{%
+  \begin{tcolorbox}[
+    brainstylebox,
+    title={\textbf{#2}\if\relax\detokenize{#1}\relax\else\ (\textit{#1})\fi},
+  ]
+}{%
+  \end{tcolorbox}
+}
+
+\ExplSyntaxOn
+\NewDocumentCommand{\newbrainblock}{mm}{
+  \newtheorem{#1}{#2}
+  \RenewDocumentEnvironment{#1}{o +b}
+   {
+    \begin{tcolorbox}[
+      brainstylebox,
+      title={\textbf{#2}\IfValueT{##1}{\ (\textit{##1})}},
+    ]
+    ##2
+    \end{tcolorbox}
+   }
+   {}
+}
+\ExplSyntaxOff
+
+\newbrainblock{remark}{Remark}
+\newbrainblock{example}{Example}
+\newbrainblock{lemma}{Lemma}
+\newbrainblock{corollary}{Corollary}
+\newbrainblock{claim}{Claim}
+\newbrainblock{property}{Property}
+\newbrainblock{note}{Note}
+\newbrainblock{caution}{Caution}
+
+% ============================================================================
+% 17. ОКРУЖЕНИЕ ALGORITHM (с автоматическим центрированием)
+% ============================================================================
+
+% Минималистичный стиль
+\newenvironment{algorithmplain}[2][\columnwidth]
+{%
+  \def\algwidth{#1}%
+  \ifdim\algwidth<\columnwidth
+    \begin{center}
+    \begin{minipage}{\algwidth}
+  \fi
+  \vspace{0.5em}
+  \noindent\rule{\algwidth}{0.1pt}\\[-0.2em]
+  \noindent
+  \textbf{Algorithm #2}\\[-0.8em]
+  \noindent\rule{\algwidth}{0.1pt}
+  % Тело алгоритма пишется пользователем в окружении algorithmic
+}{%
+  \vspace{-0.5em}
+  \noindent\rule{\algwidth}{0.1pt}
+  \vspace{1em}
+  \ifdim\algwidth<\columnwidth
+    \end{minipage}
+    \end{center}
+  \fi
+}
+
+% Стиль с боксом (с автоматическим центрированием)
+\newenvironment{algorithmboxed}[2][\columnwidth]
+{%
+  \def\algwidth{#1}%
+  \ifdim\algwidth<\columnwidth
+    \begin{center}
+    \begin{minipage}{\algwidth}
+  \fi
+  \begin{tcolorbox}[
+    brainstylebox,
+    width=\algwidth,
+    title={\textbf{Algorithm #2}},
+  ]
+  % Тело алгоритма пишется пользователем в окружении algorithmic
+}{%
+  \end{tcolorbox}
+  \ifdim\algwidth<\columnwidth
+    \end{minipage}
+    \end{center}
+  \fi
+}
+
+% Выбор стиля алгоритмов
+\ifbrain@boxedalgorithm
+  \let\algorithm\algorithmboxed
+  \let\endalgorithm\endalgorithmboxed
+\else
+  \let\algorithm\algorithmplain
+  \let\endalgorithm\endalgorithmplain
+\fi
+
+% ============================================================================
+% 18. РЕНДЕРИНГ ТИТУЛЬНОГО БЛОКА
+% ============================================================================
+%Логотипы и Заголовок на одном уровне
 \newcommand{\baselogos}[1]{%
   \begin{minipage}[t]{0.75\columnwidth}
     \renewcommand{\do}[1]{\includegraphics[height=1.2em]{logos/##1}\hspace{1.5em}}%
@@ -273,82 +553,249 @@
 
 \newcommand{\additionallogos}[1]{%
   \\[0.7em]
-  \begin{minipage}[t]{0.9\columnwidth}
-    \renewcommand{\do}[1]{\includegraphics[height=1.2em]{logos/##1}\hspace{1.5em}}%
+  \begin{minipage}[t]{1\columnwidth}
+    \renewcommand{\do}[1]{\includegraphics[height=1.5em]{logos/##1}\hspace{0.3em}}%
     \expandafter\docsvlist\expandafter{#1}%
   \end{minipage}%
-} 
-
-\RequirePackage{calc}
+}
 
 \newsavebox{\brainbox}
 \newlength{\brainboxheight}
 
 \newcommand{\maketitlebox}{%
-    \sbox{\brainbox}{%
-        \begin{minipage}[c]{\paperwidth}
-            \begin{braintitlebox}
-            \baselogos{\baselogoslist}
-            \hfill%
-            \begin{minipage}[t]{0.25\textwidth}
-                \raggedleft
-                \includesvg[height=1.5em]{logos/NeurIPS-logo}%
-                \hspace{1.5em}
-                % \raisebox{.21em}{\textbf{\Large \textcolor{braincolor}{BRAIn Lab}}} \hspace{.5em}
-                \includegraphics[height=1.5em]{logos/brain lab.png} 
-            \end{minipage}%
-            \ifshowadditionallogos
-            \additionallogos{\additionallogoslist}
-            \fi%
-            \\[1.2em]
-            \begin{minipage}[t]{\textwidth}
-                \centering
-                {\Huge \textbf{\papertitle}} \\[1.2em]
-                \Large \textbf{\brainauthors} \\[0.3em]
-                \large \affils
-            \end{minipage}
-          \end{braintitlebox}
+  \sbox{\brainbox}{%
+    \begin{minipage}[c]{\paperwidth}
+      \begin{braintitlebox}
+        \begin{minipage}[t]{0.2\textwidth}
+          \raggedright
+          \baselogos{\baselogoslist}%
+        \end{minipage}%
+        \begin{minipage}[c]{0.6\textwidth}
+          \centering
+          {\Huge \textbf{\papertitle}}
+        \end{minipage}%
+        \hfill
+        \begin{minipage}[t]{0.15\textwidth}
+          \raggedleft
+          \includegraphics[height=3em]{logos/Brain_logo.pdf}%
+        \end{minipage}%
+        \\[0.2em]
+        \begin{minipage}[t]{\textwidth}
+          \centering
+          {\large \textbf{\brainauthors}}\\[0.1em]
+          \normalsize \affils
         \end{minipage}
-    }
+      \end{braintitlebox}
+    \end{minipage}
+  }
   \settototalheight{\brainboxheight}{\usebox{\brainbox}}
-  % Рисуем overlay:
   \begin{tikzpicture}[remember picture, overlay]
     \node[anchor=north west, inner sep=0pt] at (current page.north west)
       {\usebox{\brainbox}};
   \end{tikzpicture}
-  % Двигаем основной текст вниз:
- \vspace*{\brainboxheight}
- \vspace*{-1cm}
+  \vspace*{\brainboxheight}
+  \vspace*{-0.5cm}
 }
-
-
-
+% ============================================================================
+% 19. ОСНОВНЫЕ ОКРУЖЕНИЯ
+% ============================================================================
 \NewDocumentEnvironment{mainpart}{}
 {
   \maketitlebox
-  \begin{multicols}{\postercolumns}
+  \vspace{0.5cm}
+  \begin{multicols}{\brain@postercolumns}
+  \setlength{\columnsep}{1.2cm}
+  \setlength{\multicolsep}{0pt}
+  \setlength{\premulticols}{0pt}
+  \setlength{\postmulticols}{0pt}
+  \raggedcolumns
 }
 {
   \end{multicols}
 }
 
+% ============================================================================
+% 20. QR-КОДЫ
+% ============================================================================
+%
+% Картинки ищутся в папке из опции qrdir (по умолчанию `qr`):
+%     \usepackage[qrdir=images/qr, qrsize=7em]{brainposter}
+%
+% Ожидаемые файлы для \qrcodes:
+%     qr/x-qr.png         - X (Twitter) лаборатории
+%     qr/we-chat-qr.png   - WeChat лаборатории
+%     qr/own-wechat.png   - личный WeChat докладчика
+%     qr/own-tg.png       - личный Telegram докладчика
+%
+% Если файла нет, вместо картинки рисуется рамка-заглушка с именем файла,
+% и сборка НЕ падает — постер можно верстать до того, как готовы все QR.
+%
+% ОСНОВНАЯ КОМАНДА:
+%
+%     \addqr{файл=подпись, файл=подпись, ...}
+%
+% Коды раскладываются автоматически: размер подбирается так, чтобы весь
+% список влез в одну строку по ширине колонки (но не крупнее qrsize и не
+% мельче qrminsize); если не влезает — переносится на следующую строку.
+% Ряд центрируется. Подпись можно не писать: \addqr{a.png, b.png}
+%
+%     \addqr[8em]{...}   - свой максимальный размер
+%     \qrcodes           - стандартный набор лаборатории (см. ниже)
+%
+% Подписи стандартного набора вынесены в макросы, переопределяйте их:
+%     \renewcommand{\qrlabelowntg}{Telegram: @username}
 
-\NewDocumentEnvironment{col}{}%
-  {}%
-  {\vfill\columnbreak}
+\newcommand{\qrlabelx}{X (Twitter)}
+\newcommand{\qrlabelwechat}{WeChat}
+\newcommand{\qrlabelownwechat}{My WeChat}
+\newcommand{\qrlabelowntg}{My Telegram}
 
-\NewDocumentEnvironment{firstcol}{}%
-  {}%
-  {\vfill\columnbreak}
+% \qrcode[размер]{файл}{подпись} — один QR-код с подписью под ним.
+% Низкоуровневый примитив; обычно достаточно \addqr.
+\newcommand{\qrcode}[3][\brain@qrsize]{%
+  \begin{minipage}[t]{#1}%
+    \centering
+    \IfFileExists{\brain@qrdir/#2}%
+      {\includegraphics[width=#1]{\brain@qrdir/#2}}%
+      {\brain@qrmissing{#1}{#2}}%
+    \par\vspace{0.35em}
+    % Подпись уже кода: разрешаем переносы и небольшой «разгон»,
+    % иначе длинное слово вылезает за рамку (Overfull \hbox).
+    {\small\hyphenpenalty=50 \exhyphenpenalty=50
+     \emergencystretch=1.5em \hbadness=10000
+     \hspace{0pt}#3\par}%
+  \end{minipage}%
+}
 
-\NewDocumentEnvironment{secondcol}{}%
-  {}%
-  {\vfill\columnbreak}
+% Заглушка для отсутствующего файла: рамка с именем файла.
+% \edef нужен, чтобы имя файла, приехавшее в переменной, успело раскрыться
+% до \detokenize. Длинное имя не переносится (\ttfamily), поэтому если оно
+% не влезает — ужимаем его \resizebox, иначе текст вылезет за рамку.
+\newlength{\brain@qrdim}
+\newcommand{\brain@qrmissing}[2]{%
+  \begingroup
+    \edef\brain@qrtmp{#2}%
+    \setlength{\brain@qrdim}{\dimexpr#1-2\fboxsep-2\fboxrule\relax}%
+    \sbox0{\tiny\ttfamily\expandafter\detokenize\expandafter{\brain@qrtmp}}%
+    \fbox{\parbox[c][\brain@qrdim][c]{\brain@qrdim}{%
+      \centering
+      \ifdim\wd0>\brain@qrdim
+        \resizebox{\brain@qrdim}{!}{\usebox0}%
+      \else
+        \usebox0
+      \fi
+    }}%
+  \endgroup
+}
 
-\NewDocumentEnvironment{thirdcol}{}%
-  {}%
-  {\vfill\columnbreak}
+\ExplSyntaxOn
+\clist_new:N \l__brain_qr_clist
+\seq_new:N   \l__brain_qr_pair_seq
+\tl_new:N    \l__brain_qr_file_tl
+\tl_new:N    \l__brain_qr_label_tl
+\dim_new:N   \l__brain_qr_width_dim
+\int_new:N   \l__brain_qr_count_int
+\int_new:N   \l__brain_qr_gaps_int
+\bool_new:N  \l__brain_qr_first_bool
 
-\NewDocumentEnvironment{fourthcol}{}%
-  {}%
-  {\vfill\columnbreak}
+% \addqr[макс. размер]{список}
+\NewDocumentCommand{\addqr}{ O{\brain@qrsize} m }
+{
+  \clist_set:Nn \l__brain_qr_clist { #2 }
+  \int_set:Nn \l__brain_qr_count_int { \clist_count:N \l__brain_qr_clist }
+  \int_compare:nNnT { \l__brain_qr_count_int } > { 0 }
+    { \brain_qr_render:n { #1 } }
+}
+
+\cs_new_protected:Npn \brain_qr_render:n #1
+{
+  % ширина, при которой все коды влезают в одну строку
+  \int_set:Nn \l__brain_qr_gaps_int { \l__brain_qr_count_int - 1 }
+  \dim_set:Nn \l__brain_qr_width_dim
+    {
+      ( \linewidth - \brain@qrgap * \l__brain_qr_gaps_int )
+      / \l__brain_qr_count_int
+    }
+  % не крупнее заданного максимума...
+  \dim_compare:nNnT { \l__brain_qr_width_dim } > { #1 }
+    { \dim_set:Nn \l__brain_qr_width_dim { #1 } }
+  % ...и не мельче минимума (тогда список поедет на несколько строк)
+  \dim_compare:nNnT { \l__brain_qr_width_dim } < { \brain@qrminsize }
+    { \dim_set:Nn \l__brain_qr_width_dim { \brain@qrminsize } }
+
+  \par \addvspace { 0.6em }
+  \begingroup
+    \parindent = \c_zero_dim
+    \centering
+    \bool_set_true:N \l__brain_qr_first_bool
+    \clist_map_inline:Nn \l__brain_qr_clist
+      {
+        \bool_if:NTF \l__brain_qr_first_bool
+          { \bool_set_false:N \l__brain_qr_first_bool }
+          { \hskip \brain@qrgap plus 0.5em minus 0.4em }
+        \brain_qr_item:n { ##1 }
+      }
+    \par
+  \endgroup
+  \addvspace { 0.6em }
+}
+
+% Один элемент списка: "файл" или "файл=подпись"
+\cs_new_protected:Npn \brain_qr_item:n #1
+{
+  \seq_set_split:Nnn \l__brain_qr_pair_seq { = } { #1 }
+  \seq_pop_left:NN \l__brain_qr_pair_seq \l__brain_qr_file_tl
+  \seq_pop_left:NNF \l__brain_qr_pair_seq \l__brain_qr_label_tl
+    { \tl_clear:N \l__brain_qr_label_tl }
+  \qrcode [ \dim_use:N \l__brain_qr_width_dim ]
+          { \l__brain_qr_file_tl } { \l__brain_qr_label_tl }
+}
+\ExplSyntaxOff
+
+% \qrcodes[размер] — стандартный набор лаборатории.
+\newcommand{\qrcodes}[1][\brain@qrsize]{%
+  \addqr[#1]{%
+    x-qr.png=\qrlabelx,
+    we-chat-qr.png=\qrlabelwechat,
+    own-wechat.png=\qrlabelownwechat,
+    own-tg.png=\qrlabelowntg%
+  }%
+}
+
+% \begin{qrbox}[размер]{Заголовок} ... \end{qrbox}
+% Ряд QR-кодов в фирменном боксе (как theorem/custombox).
+% Пустое тело -> стандартный набор \qrcodes;
+% иначе тело используется как есть (обычно там \addqr{...}).
+\NewDocumentEnvironment{qrbox}{ O{\brain@qrsize} m +b }
+{%
+  \begin{tcolorbox}[brainstylebox, title={\textbf{#2}}]%
+  \ifblank{#3}{\qrcodes[#1]}{#3}%
+  \end{tcolorbox}%
+}{}
+
+% ============================================================================
+% 21. БИБЛИОГРАФИЯ
+% ============================================================================
+%
+% ВНИМАНИЕ. Пакет сам вставляет список литературы в конце документа:
+% файл берётся из опции bibfile (по умолчанию references), стиль — из
+% опции bibliostyle (по умолчанию plainnat). Например:
+%
+%     \usepackage[bibfile=mybib, bibliostyle=abbrvnat]{brainposter}
+%
+% Поэтому в самом .tex НЕ НУЖНО писать \bibliographystyle{...} и
+% \bibliography{...} вручную: они попадут в .aux вторым экземпляром, и
+% bibtex остановится с ошибкой
+%     Illegal, another \bibstyle command---line N of file ....aux
+% Управляйте библиографией только через опции пакета.
+%
+% Если файла bibfile.bib нет, блок литературы просто не выводится.
+%
+\AtEndDocument{
+  \IfFileExists{\brain@bibfile.bib}{%
+    \bibliographystyle{\brain@bibliostyle}
+    \bibliography{\brain@bibfile}
+  }{}
+}
+
+\endinput

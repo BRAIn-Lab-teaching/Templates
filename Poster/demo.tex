@@ -1,99 +1,282 @@
 \documentclass[11pt]{article}
 
-
 \usepackage[
-  bgcolor={245,245,250},      % box bg color: RGB or xcolor name (e.g. gray, blue, etc.)
-  braincolor={190,32,240},    % accent color: RGB or xcolor name (e.g. gray, blue, etc.)
-  % linkcolor={245,245,250},  % defaults to braincolor
-  % citecolor={245,245,250},  % defaults to braincolor
-  % urlcolor=blue,            % defaults to blue
+  % ----- РАЗМЕРЫ ПОСТЕРА -----
   posterwidth=42cm,
   posterheight=30cm,
   postercolumns=3,
-  citingstyle=authoryear,     % authoryear: [Ivanov et al., 2023] | numbers: [1] | super: ¹
-  bibliostyle=plainnat,       % plainnat, abbrvnat, unsrtnat, ...
-  bibfile=references          % .bib file name (without .bib)
+  % ----- СТИЛЬ ШАПОК -----
+  % light Светлые (голубые, чёрный текст) - ПО УМОЛЧАНИЮ
+  % dark Тёмные (фиолетовые, белый текст) | accent Акцентные (жёлтые)
+  boxheaders=dark,
+  % ----- СТИЛЬ ТАБЛИЦ / РИСУНКОВ / АЛГОРИТМОВ -----
+  boxedtable,        % Таблицы в рамке (иначе минималистичные)
+  boxedfigure,       % Рисунки в рамке
+  boxedalgorithm,    % Алгоритмы в рамке
+  % ----- НАСТРОЙКИ ОТСТУПОВ И РАМОК -----
+  % padding=15pt, boxrule=1pt, arc=4mm
+  % ----- QR-КОДЫ -----
+  % qrdir=qr, qrsize=6em, qrminsize=3.5em, qrgap=1.5em
+  % ----- БИБЛИОГРАФИЯ -----
+  citingstyle=authoryear,
+  bibliostyle=plainnat,
+  bibfile=references
 ]{brainposter}
 
+\usepackage{shortcuts}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds}
+
+% Палитра графиков берётся из цветов постера, чтобы всё смотрелось единым
+\colorlet{plotA}{braincolor}
+\colorlet{plotB}{boxcolor!65!black}
+\colorlet{plotC}{highlightcolor!75!black}
+
+% Общий стиль для всех графиков — задаём один раз
+\pgfplotsset{
+  brainplot/.style={
+    % 0.98, а не 1.0: pgfplots считает width по осям, подписи торчат наружу
+    width=0.98\linewidth, height=4.9cm,
+    tick label style={font=\small},
+    label style={font=\small},
+    legend style={font=\small, draw=gray!40, fill=white, fill opacity=0.85,
+                  text opacity=1, row sep=1pt},
+    grid=major, grid style={gray!22, thin},
+    axis line style={gray!55},
+    tick style={gray!55},
+    every axis plot/.append style={line width=1pt},
+  }
+}
+
+\renewcommand{\qrlabelowntg}{Telegram: @jdoe}
+
 \setbrainmeta{
-  title={Neural Alignment Techniques for  Representations},
+  title={Neural Alignment Techniques for Enhanced Semantic Representations},
   authors={
     Jane Doe\textsuperscript{1}, John Smith\textsuperscript{2}, Alice Johnson\textsuperscript{1}
   },
   affiliations={
-    \textsuperscript{1}Moscow Institute of Physics and Technology
+    \textsuperscript{1}Moscow Institute of Physics and Technology \\
     \textsuperscript{2}Institute for System Programming, RAS
-  },
-  baselogos={mipt.png,isp.png,innopolis.png},
-  % additionallogos={innopolis.png,mipt.png,isp.png}
-  % Лучший способ сделать ч/б лого -- взять .svg, открыть, напрмиер, figma, поменять цвет и сохранить как png 
+  }
+  % несколько логотипов слева: baselogos {mipt.pdf,isp.pdf,innopolis.pdf}
 }
-
 
 \begin{document}
 \begin{mainpart}
 
-  \section*{Introduction}
-  \lipsum[2]
+% ========================= КОЛОНКА 1 =========================
 
-  \section*{Theoretical Foundations}
-  \lipsum[10]
+% \begin{custombox}{Заголовок} ... \end{custombox}
+\begin{custombox}{Key Contributions}
+\begin{itemize}[leftmargin=1.2em, itemsep=3pt, topsep=2pt]
+  \item A \textbf{contrastive alignment} objective that ties text and vision
+        encoders into one semantic space.
+  \item A closed-form bound on the alignment gap under strong convexity.
+  \item \textbf{+4.8\,pp} average Top-1 over the strongest baseline, at
+        \textbf{2.3$\times$} lower training cost.
+\end{itemize}
+\end{custombox}
 
-  \begin{theorem}
-  Let \( a, b \in \mathbb{R} \). Then \( a^2 + b^2 \geq 2ab \).
-  \end{theorem}
+\section*{Method}
 
-  As stated in \Cref{assumption:strong_convexity}, we assume $f$ is $\mu$-strongly convex, i.e. for all \( x, y \in X \) \Cref{eq:strong_convexity} holds. See results in \Cref{table:results}. We use \Cref{algo:proj_gd}.
+Two frozen encoders are mapped into a shared space by a light projection head;
+only the head and the alignment module are trained.
 
-  \lipsum[11]
+% Рисунки: \begin{figure} ... \captionof{figure}{Подпись} \end{figure}
+% Это НЕ плавающий float — блок встаёт ровно там, где написан.
+\begin{figure}
+% Координаты заданы явно (в см). Так надёжнее, чем `right=... of ...`:
+% позиционирование относительно центра узла легко приводит к наложениям.
+\begin{tikzpicture}[
+  box/.style={rounded corners=2pt, draw=braincolor, fill=braincolor!12,
+              minimum height=8mm, minimum width=19mm, align=center,
+              font=\small},
+  enc/.style={box, fill=braincolor, text=white, draw=braincolor},
+  core/.style={box, fill=boxcolor!45, draw=boxcolor!65!black,
+               minimum height=14mm},
+  % NB: стиль нельзя назвать `out` — так называется встроенный ключ TikZ
+  outbox/.style={box, fill=highlightcolor!45, draw=highlightcolor!70!black},
+  ar/.style={-{Stealth[length=2mm]}, draw=braincolor!70, line width=0.7pt},
+]
+  \node[box] (tin)   at (0,    0.85) {Text $x$};
+  \node[box] (iin)   at (0,   -0.85) {Image $v$};
+  \node[enc] (tenc)  at (2.8,  0.85) {Text\\Encoder};
+  \node[enc] (ienc)  at (2.8, -0.85) {Vision\\Encoder};
+  \node[core] (align) at (5.6, 0)    {Alignment\\Module};
+  \node[outbox] (space) at (8.3, 0)  {Shared\\Space};
+
+  % (a) -- (b) между узлами TikZ сам обрезает по границам — стрелки не залезают
+  \draw[ar] (tin)  -- (tenc);
+  \draw[ar] (iin)  -- (ienc);
+  \draw[ar] (tenc) -- (align);
+  \draw[ar] (ienc) -- (align);
+  \draw[ar] (align) -- (space);
+\end{tikzpicture}
+\captionof{figure}{Only the projection head and the alignment module receive
+gradients; both encoders stay frozen.}
+\label{fig:arch}
+\end{figure}
+
+% \begin{assumption} / \begin{theorem} / \begin{definition} / ...
+% \makeanchor{имя} ставит якорь, \hyperlink{имя}{текст} — ссылку на него
+\begin{assumption}
+\makeanchor{assumption:strong_convexity}
+The objective \(f\) is $\mu$-strongly convex: for all \( x, y \in X \),
+\begin{equation}\label{eq:strong_convexity}
+f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|^2.
+\end{equation}
+\end{assumption}
+
+Under the \hyperlink{assumption:strong_convexity}{strong convexity assumption},
+the alignment gap contracts linearly in the number of steps.
+
+\begin{lemma}[Cauchy--Schwarz]
+For all \( u, v \in X \): \( |\langle u, v \rangle| \le \|u\|\,\|v\| \),
+with equality iff \( u \) and \( v \) are collinear.
+\end{lemma}
+
+\begin{definition}
+A map \( T: X \to X \) is \emph{non-expansive} if
+\( \|T(x) - T(y)\| \le \|x - y\| \) for all \( x, y \in X \).
+\end{definition}
+
+% ========================= КОЛОНКА 2 =========================
+% \columnbreak задаёт разрыв колонки явно. Для постера так предсказуемее,
+% чем автоматическая балансировка: заголовок не отрывается от своего блока.
+% NB: \vfill\null перед \columnbreak НЕ ставим — он растягивает колонку на всю
+% высоту, и тогда список литературы под multicols уезжает на вторую страницу.
 \columnbreak
-  \begin{definition}
-  A mapping \( T: X \to X \) is non-expansive if \( \|T(x) - T(y)\| \leq \|x - y\| \) for all \( x, y \in X \).
-  \end{definition}
 
-  \begin{assumption}\label{assumption:strong_convexity}
-  The function \(f\) is assumed to be $\mu$-strongly convex, i.e., for all \( x, y \in X \):
-  \begin{equation}\label{eq:strong_convexity}
-  f(y) \geq f(x) + \langle \nabla f(x), y - x \rangle + \frac{\mu}{2} \|y - x\|^2.
-  \end{equation}
-  \end{assumption}
+\section*{Training}
 
+% \begin{algorithm}{Название}       - ширина колонки
+% \begin{algorithm}[ширина]{Название} - узкие центрируются автоматически
+% Тело — в algorithmic: [0] без нумерации, [1] каждая строка, [n] каждая n-я
+\begin{algorithm}{Projected Alignment Descent}
+\begin{algorithmic}[1]
+\State \textbf{Input:} point \( x_0 \), step \( \eta \), projection \( \Pi \)
+\For{ \( t = 1 \) to \( T \) }
+  \State \( g_t \gets \nabla f(x_{t-1}) + \lambda \nabla \mathcal{L}_{\text{align}} \)
+  \State \( x_t \gets \Pi(x_{t-1} - \eta\, g_t) \)
+\EndFor
+\State \Return \( x_T \)
+\end{algorithmic}
+\end{algorithm}
 
-  \section*{Methodology}
-  \lipsum[3]
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+  brainplot,
+  xlabel={Training steps, k}, ylabel={Top-1 accuracy, \%},
+  xmin=0, xmax=100, ymin=58, ymax=97,
+  legend pos=south east,
+]
+\addplot[plotA, mark=*, mark size=1.1]
+  coordinates {(0,61)(10,74)(20,81)(30,85)(40,88)(50,90)(60,92)(70,93.4)(80,94.3)(90,94.9)(100,95.2)};
+\addlegendentry{Ours}
+\addplot[plotB, mark=square*, mark size=1.1, dashed]
+  coordinates {(0,60)(10,70)(20,76)(30,80)(40,83)(50,85)(60,86.5)(70,87.6)(80,88.4)(90,88.9)(100,89.3)};
+\addlegendentry{CLIP-style}
+\addplot[plotC, mark=triangle*, mark size=1.3, dotted]
+  coordinates {(0,59)(10,66)(20,71)(30,74)(40,77)(50,79)(60,80.5)(70,81.6)(80,82.3)(90,82.8)(100,83.1)};
+\addlegendentry{Frozen baseline}
+\end{axis}
+\end{tikzpicture}
+\captionof{figure}{Validation accuracy on CIFAR-10. Our objective converges
+faster and to a higher plateau.}
+\label{fig:curves}
+\end{figure}
 
-  \begin{algorithm}{Projected Gradient Descent}\label{algo:proj_gd}
-  \begin{algorithmic}[1]
-  \State \textbf{Input:} Initial point \( x_0 \), step size \( \eta \), projection operator \( \Pi \)
-  \For{ \( t = 1 \) to \( T \) }
-    \State \( x_t \gets \Pi(x_{t-1} - \eta \nabla f(x_{t-1})) \)
-  \EndFor
-  \State \Return \( x_T \)
-  \end{algorithmic}
-  \end{algorithm}
+\begin{theorem}[Linear contraction]
+Let Assumption~1 hold and let \( \eta \le 1/L \). Then
+\( \|x_T - x^\star\|^2 \le (1 - \eta\mu)^T \|x_0 - x^\star\|^2 \).
+\end{theorem}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+  brainplot,
+  height=4.3cm,
+  ybar, bar width=7pt,
+  ylabel={Top-1 accuracy, \%},
+  symbolic x coords={CIFAR-10, SVHN, STL-10},
+  xtick=data, ymin=70, ymax=100,
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3},
+  nodes near coords={}, % подписи над столбцами можно включить здесь
+]
+\addplot[fill=plotA, draw=plotA] coordinates {(CIFAR-10,95.2)(SVHN,97.1)(STL-10,93.6)};
+\addlegendentry{Ours}
+\addplot[fill=plotB, draw=plotB] coordinates {(CIFAR-10,89.3)(SVHN,94.1)(STL-10,86.2)};
+\addlegendentry{CLIP-style}
+\addplot[fill=plotC, draw=plotC] coordinates {(CIFAR-10,83.1)(SVHN,90.4)(STL-10,79.8)};
+\addlegendentry{Frozen}
+\end{axis}
+\end{tikzpicture}
+\captionof{figure}{Consistent gains across three datasets.}
+\label{fig:bars}
+\end{figure}
+
+% ========================= КОЛОНКА 3 =========================
 \columnbreak
-  \section*{Results}
-  \lipsum[6]
 
-  \begin{table}[ht]
-  \centering
-  \begin{tabular}{l c c c}
-  \toprule
-  Model & CIFAR-10 & SVHN & Params \\
-  \midrule
-  MLP \rule{0pt}{2.3ex} & 84.5\% & \highlightcell 91.2\% & 1.2M \\
-  CNN-3 &\highlightcell 89.3\% & 94.1\% & 0.8M \\
-  \highlightrow
-  ResNet18 & 92.7\% & 95.6\% & 11.7M \\
-  ResNet152 & 95.2\% & 97.1\% & 36.5M \\
-  \highlightrow
-  ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
-  \bottomrule
-  \end{tabular}
-  \caption{Accuracy and parameter count across datasets.}
-  \label{table:results}
-  \end{table}
+\section*{Results}
 
-  \lipsum[4]
+% Таблицы: \begin{table} ... \captionof{table}{Подпись} \end{table}
+% Выделение ячеек: \highlightcell \highlightcellA \highlightcellB \highlightcellC
+% Выделение строк:  \highlightrow  \highlightrowA  \highlightrowB  \highlightrowC
+\begin{table}
+\centering
+\begin{tabular}{l c c c}
+\toprule
+Model & CIFAR-10 & SVHN & Params \\
+\midrule
+MLP \rule{0pt}{2.3ex} & 84.5\% & \highlightcell 91.2\% & 1.2M \\
+CNN-3 &\highlightcellC 89.3\% & 94.1\% & 0.8M \\
+\highlightrowB
+ResNet18 & 92.7\% & 95.6\% & 11.7M \\
+ResNet152 & 95.2\% & 97.1\% & 36.5M \\
+\highlightrow
+ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
+\bottomrule
+\end{tabular}
+\captionof{table}{Accuracy and parameter count across datasets.}
+\label{table:results}
+\end{table}
+
+\begin{figure}
+% Матрица ошибок нарисована обычным TikZ: значение задаёт и число, и насыщенность
+\begin{tikzpicture}[x=9.5mm, y=9.5mm, font=\small]
+  \foreach \c [count=\i from 0] in {cat, dog, car, ship} {
+    \node[anchor=east] at (0, 3.5-\i) {\c};
+    \node[rotate=40, anchor=east] at (\i+0.5, -0.15) {\c};
+  }
+  % NB: рамку каждой клетки рисуем вместе с заливкой (\filldraw), а не общей
+  % сеткой \draw...grid: у grid шаг по умолчанию step=1cm — абсолютный, он не
+  % учитывает x=/y= выше, и сетка расходится с клетками.
+  \foreach \x/\y/\v in {
+    0/3/91, 1/3/6, 2/3/2, 3/3/1,
+    0/2/7, 1/2/89, 2/2/3, 3/2/1,
+    0/1/1, 1/1/2, 2/1/94, 3/1/3,
+    0/0/1, 1/0/1, 2/0/5, 3/0/93}
+  {
+    \filldraw[fill=braincolor!\v, draw=gray!45, line width=0.3pt]
+      (\x, \y) rectangle ++(1, 1);
+    \node[text=\ifnum\v>55 white\else black\fi] at (\x+0.5, \y+0.5) {\v};
+  }
+  \node[anchor=north, font=\small] at (2,-1.05) {predicted};
+\end{tikzpicture}
+\captionof{figure}{Confusion matrix (\%), rows are ground truth.}
+\label{fig:cm}
+\end{figure}
+
+% QR-коды: \addqr{файл=подпись, ...} — размер и перенос считаются сами.
+% Готовый набор лаборатории — \qrcodes. Файлы лежат в qr/ (см. qr/README.md).
+\begin{qrbox}{Scan for code \& contacts}
+\addqr{x-qr.png=Lab on X, lab-tg.png=\qrlabelowntg}
+\end{qrbox}
+
+\nocite{*}  % включает все работы из .bib файла
 \end{mainpart}
 \end{document}
