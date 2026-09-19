@@ -1,6 +1,6 @@
 # BrainLab LaTeX presentation template
 
-Шаблон лекционной презентации на `beamer`. Компилируется `pdflatex` (на Overleaf — настройки по умолчанию).
+Шаблон лекционной презентации на `beamer`. Компилируется `pdflatex` (на Overleaf — настройки по умолчанию). (Ссылка на шаблон в оверлиф)[https://www.overleaf.com/read/btpqwqvvzvmd#f07248] 
 
 > **Нужно минимум два прохода компиляции.** Верхняя панель разделов (`miniframes`) строится
 > по файлу `.nav`, при одном проходе она пустая. `latexmk` и Overleaf делают это сами;
