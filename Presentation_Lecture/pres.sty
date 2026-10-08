@@ -21,7 +21,20 @@
 \RequirePackage{xcolor}
 \RequirePackage{graphicx}
 \RequirePackage{tikz}
-\usetikzlibrary{positioning,calc,automata,arrows.meta}
+\usepackage{tikz-3dplot}
+\RequirePackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usetikzlibrary{
+    positioning,
+    calc,
+    automata,
+    arrows.meta,
+    intersections,
+    fillbetween,
+    decorations.markings,
+    patterns,
+    patterns.meta
+}
 \RequirePackage{tcolorbox}
 \RequirePackage{svg} % требует --shell-escape и inkscape при реальном \includesvg
 % \RequirePackage{pstricks} % НЕ совместим с pdflatex; включать только под latex+dvips/xelatex
@@ -39,6 +52,7 @@
 \RequirePackage[stable]{footmisc}
 \RequirePackage[normalem]{ulem}
 \RequirePackage{pifont}
+\RequirePackage{braket}
 
 % algorithms
 \RequirePackage{algorithm}
@@ -120,7 +134,7 @@
   \colorlet{secondary}{apricot}%
   \colorlet{accent}{amber}%
   \colorlet{surface}{papaya}%
-  \colorlet{background}{floral}%
+  \colorlet{background}{white}%
   \colorlet{ink}{inkBerry}%
   \definecolor{onPrimary}{HTML}{FBF8F1}%
   \colorlet{onSecondary}{inkBerry}%
@@ -236,6 +250,9 @@
   \addtobeamertemplate{footline}{}{\global\boolfalse{bb@titleframe}}
 }{}
 
+\newcommand{\AlgInput}[1]{\Statex \textbf{Вход:} #1}
+\newcommand{\AlgOutput}[1]{\Statex \textbf{Выход:} #1}
+
 % nav symbols (tiny buttons, not the miniframes bar)
 \expandafter\ifstrequal\expandafter{\bb@nav}{hide}{\setbeamertemplate{navigation symbols}{}}{}
 
@@ -243,12 +260,14 @@
 \newcommand*{\NameTheorem}{}
 \newcommand*{\NameLemma}{}
 \newcommand*{\NameDefinition}{}
+\newcommand*{\NameProposition}{}
 \newcommand*{\NameProof}{}
 
 \expandafter\ifstrequal\expandafter{\bb@lang}{ru}{%
   \renewcommand*{\NameTheorem}{Теорема}
   \renewcommand*{\NameLemma}{Лемма}
   \renewcommand*{\NameDefinition}{Определение}
+\renewcommand*{\NameProposition}{Утверждение}
   \renewcommand*{\NameProof}{Доказательство}
   \makeatletter\renewcommand{\ALG@name}{Алгоритм}\makeatother
   \renewcommand{\algorithmicrequire}{\textbf{Вход:}}
@@ -258,6 +277,7 @@
   \renewcommand*{\NameTheorem}{Theorem}
   \renewcommand*{\NameLemma}{Lemma}
   \renewcommand*{\NameDefinition}{Definition}
+    \renewcommand*{\NameProposition}{Proposition}
   \renewcommand*{\NameProof}{Proof}
   \makeatletter\renewcommand{\ALG@name}{Algorithm}\makeatother
   \renewcommand{\algorithmicrequire}{\textbf{Input:}}
@@ -277,6 +297,7 @@
 \newtheorem*{thm}{\NameTheorem}
 \newtheorem*{lem}{\NameLemma}
 \newtheorem*{defn}{\NameDefinition}
+\newtheorem*{prop}{\NameProposition}
 \renewenvironment{proof}[1][\NameProof]{\par\noindent\textit{#1.}\ }{\hfill$\square$\par}
 
 \makeatletter
@@ -326,3 +347,95 @@
 % Стили: tcolorbox presbox, tikz presnode/presedge
 
 % Done.
+
+\tikzset{>=latex}
+\tikzset{
+  dot/.style={circle, fill, inner sep=1pt}
+}
+
+\makeatletter
+
+\newsavebox\custombraces@box
+\newdimen\custombraces@cont@ht
+\newdimen\custombraces@min@ht
+\newif\ifcustombraces@useleft
+
+% % Минимальные скобки
+\newcommand{\minleft}{\bigl}
+\newcommand{\minright}{\bigr}
+
+\newcommand{\custombraces@measure}[4]{% {mathstyle}{left}{content}{right}
+  \sbox\custombraces@box{\ensuremath{#1#3}}%
+  \custombraces@cont@ht=\dimexpr\ht\custombraces@box+\dp\custombraces@box\relax
+  \sbox\custombraces@box{\ensuremath{#1x^{k+1 + f}_{f}}}%
+  \custombraces@min@ht=\dimexpr\ht\custombraces@box+\dp\custombraces@box\relax
+  \ifdim\custombraces@cont@ht>\custombraces@min@ht
+    \custombraces@uselefttrue
+  \else
+    \custombraces@useleftfalse
+  \fi
+}
+
+\newcommand{\custombraces@braces}[3]{% {left}{content}{right}
+  \mathchoice
+    {% \displaystyle
+      \custombraces@measure{\displaystyle}{#1}{#2}{#3}%
+      \ifcustombraces@useleft
+        \left#1 #2 \right#3
+      \else
+        \minleft#1 #2 \minright#3
+      \fi
+    }
+    {% \textstyle
+      \custombraces@measure{\textstyle}{#1}{#2}{#3}%
+      \ifcustombraces@useleft
+        \left#1 #2 \right#3
+      \else
+        \minleft#1 #2 \minright#3
+      \fi
+    }
+    {% \scriptstyle
+      \custombraces@measure{\scriptstyle}{#1}{#2}{#3}%
+      \ifcustombraces@useleft
+        \left#1 #2 \right#3
+      \else
+        \minleft#1 #2 \minright#3
+      \fi
+    }
+    {% \scriptscriptstyle
+      \custombraces@measure{\scriptscriptstyle}{#1}{#2}{#3}%
+      \ifcustombraces@useleft
+        \left#1 #2 \right#3
+      \else
+        \minleft#1 #2 \minright#3
+      \fi
+    }
+}
+
+\RenewDocumentCommand\qty{ g d[] d() d|| }
+{%
+  \IfValueTF{#1}
+    {{\custombraces@braces{\lbrace}{#1}{\rbrace}}}
+  {%
+    \IfValueTF{#2}
+      {{\custombraces@braces{\lbrack}{#2}{\rbrack}}}
+    {%
+      \IfValueTF{#3}
+        {{\custombraces@braces{\lparen}{#3}{\rparen}}}
+      {%
+        \IfValueTF{#4}
+          {{\custombraces@braces{\lvert}{#4}{\rvert}}}
+          {}%
+      }%
+    }%
+  }%
+}
+
+\RenewDocumentCommand\norm{ m }
+{%
+  \ensuremath{\mathord{\custombraces@braces{\lVert}{#1}{\rVert}}}%
+}
+
+\RenewDocumentCommand{\scalar}{m}{%
+  \ensuremath{\mathord{\custombraces@braces{\langle}{#1}{\rangle}}}%
+}
