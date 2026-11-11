@@ -1,0 +1,145 @@
+% !TEX program = xelatex
+% Собирать XeLaTeX (текст Montserrat, формулы Latin Modern). На Overleaf: Menu -> Compiler -> XeLaTeX
+% (или оставьте рядом файл latexmkrc).
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage[lang=ru]{brainpres}
+
+\title[Проксимальный метод]{Негладкая оптимизация. Проксимальный метод}
+\subtitle{Методы оптимизации, лекция 5}
+\author{Александр Безносиков}
+\institute{BRAIn lab, МФТИ}
+\date{20 марта 2024}
+
+\begin{document}
+
+\titleframe
+
+\begin{frame}{\contentsname}
+  \tableofcontents
+\end{frame}
+
+% ------------------------------------------------------------
+\section{Постановка задачи}   % слайд раздела вставляется автоматически
+
+\begin{frame}{Задача композитной оптимизации}{Гладкая часть плюс негладкий регуляризатор}
+  Рассматриваем задачу
+  \[
+    \min_{x \in \Rd} \; F(x) = f(x) + r(x),
+  \]
+  где
+  \begin{itemize}
+    \item $f$ --- выпуклая и $L$-гладкая;
+    \item $r$ --- выпуклая, но, возможно, \alert{негладкая}:
+      \begin{itemize}
+        \item $r(x) = \lambda \norm{x}_1$ (LASSO);
+        \item индикатор выпуклого множества.
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Скорости сходимости}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.31\textwidth}\statcard{$\mathcal{O}(1/k)$}{градиентный спуск на гладкой задаче}
+    \column{0.31\textwidth}\statcard{$\mathcal{O}(1/k)$}{проксимальный градиентный метод на композитной задаче}
+    \column{0.31\textwidth}\statcard{$\mathcal{O}(1/k^2)$}{с ускорением (FISTA)}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[c,dark]
+  \statement[Главная мысль лекции]{Негладкость не мешает, если у регуляризатора считается prox.}
+\end{frame}
+
+% ------------------------------------------------------------
+\section{Проксимальный метод}
+
+\begin{frame}{Проксимальный оператор}
+  \begin{defn}
+    $\operatorname{prox}_{\gamma r}(x) = \argmin_{y} \left\{ r(y) + \frac{1}{2\gamma}\norm{y - x}^2_2 \right\}$.
+  \end{defn}
+  \begin{thm}
+    Если $f$ выпукла и $L$-гладкая, $\gamma \le 1/L$, то
+    $F(x^k) - F^* \le \dfrac{\norm{x^0 - x^*}^2}{2\gamma k}$.
+  \end{thm}
+\end{frame}
+
+\begin{frame}{Три режима}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.49\textwidth}
+      \begin{card}[height=4.6cm]{Градиентный шаг}
+        $x^{k+1} = x^k - \gamma \nabla f(x^k)$
+        \begin{itemize}
+          \item только гладкая часть;
+          \item скорость $\mathcal{O}(1/k)$.
+        \end{itemize}
+      \end{card}
+    \column{0.49\textwidth}
+      \begin{card}{Проксимальный шаг}
+        $x^{k+1} = \operatorname{prox}_{\gamma r}\bigl(x^k - \gamma \nabla f(x^k)\bigr)$
+      \end{card}
+      \begin{cardgold}{Ускорение}
+        FISTA: $\mathcal{O}(1/k^2)$ \cmark
+      \end{cardgold}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Алгоритм}
+  \begin{columns}[c,onlytextwidth]
+    \column{0.62\textwidth}
+    \begin{algorithm}[H]
+      \caption{Проксимальный градиентный метод}
+      \begin{algorithmic}[1]
+        \Require шаг $\gamma > 0$, точка $x^0$
+        \For{$k = 0, 1, \dots, K-1$}
+          \State $x^{k+1} = \operatorname{prox}_{\gamma r}\bigl(x^k - \gamma \nabla f(x^k)\bigr)$
+        \EndFor
+        \Ensure $x^K$
+      \end{algorithmic}
+    \end{algorithm}
+    \column{0.34\textwidth}
+    \centering
+    \begin{tikzpicture}[node distance=1.2cm]
+      \node[presnode] (a) {$x^k$};
+      \node[presnode, right=of a] (b) {$y^k$};
+      \node[presnode, below=0.8cm of b] (c) {$x^{k+1}$};
+      \draw[presedge] (a) -- node[above]{\scriptsize $\nabla f$} (b);
+      \draw[presedge] (b) -- node[right]{\scriptsize prox} (c);
+    \end{tikzpicture}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Важное}
+  \begin{columns}[T,onlytextwidth]
+    \column{0.48\textwidth}
+      \begin{alertblock}{Шаг}
+        При $\gamma > 1/L$ метод может расходиться.
+      \end{alertblock}
+    \column{0.48\textwidth}
+      \begin{exampleblock}{Пример}
+        Для $r(x) = \lambda\norm{x}_1$ prox --- покомпонентный soft-thresholding.
+      \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% Шаблоны слайдов с картинкой и цитатой: замените текст на свой
+\imageframe{figures/example.jpg}{Слайд с картинкой}{%
+  Рисунок или фото занимает левую половину слайда и обрезается под неё
+  с сохранением пропорций. Справа --- заголовок и текст.}
+
+\quoteframe{Здесь может быть цитата: она набирается крупно на отдельном слайде.}{Автор цитаты}
+
+% ------------------------------------------------------------
+\section{Итоги}
+
+\begin{frame}{Итоги}
+  \begin{enumerate}
+    \item prox --- обобщение проекции;
+    \item скорость как у градиентного спуска: $\mathcal{O}(1/k)$;
+    \item ускорение даёт $\mathcal{O}(1/k^2)$.
+  \end{enumerate}
+  \vfill
+  \pdflink{Конспект лекции}{https://example.com/}
+\end{frame}
+
+\finalframe{Спасибо за внимание!}{Александр Безносиков \\ BRAIn lab, МФТИ}
+
+\end{document}

@@ -1,3 +1,6 @@
+% arXiv: строка должна стоять в первых 5 строках главного файла,
+% тогда arXiv гарантированно собирает статью через pdfLaTeX.
+\pdfoutput=1
 \documentclass[11pt]{article}
 
 \usepackage[
@@ -41,13 +44,19 @@
 
 \setbrainmeta{
   title={Neural Alignment Techniques for Enhanced Semantic Representations},
+  % Сноски (\footnote, \thanks) в титульнике не работают: он собран внутри
+  % \twocolumn[...]. Равный вклад и контакты пишите строкой в affiliations.
   authors={
-    Jane Doe\textsuperscript{1}, John Smith\textsuperscript{2}, Alice Johnson\textsuperscript{1}
+    Jane Doe\textsuperscript{1,*}, John Smith\textsuperscript{2,*}, Alice Johnson\textsuperscript{1}
   },
   affiliations={
     \textsuperscript{1}Moscow Institute of Physics and Technology \\
-    \textsuperscript{2}Institute for System Programming, RAS
+    \textsuperscript{2}Institute for System Programming, RAS \\[0.3em]
+    {\small \textsuperscript{*}Equal contribution.
+    Correspondence to: \href{mailto:jane.doe@example.com}{jane.doe@example.com}}
   },
+  % Ключевые слова попадают только в метаданные PDF, в тексте их не видно.
+  keywords={alignment, representation learning, optimization},
   abstract={
     \lipsum[1] \citep{kingma2014adam}
   },
@@ -67,9 +76,11 @@
 \section{Theoretical Foundations}
 \lipsum[10]
 
-\begin{theorem}
+\begin{theorem}\label{thm:amgm}
 Let \( a, b \in \mathbb{R} \). Then \( a^2 + b^2 \geq 2ab \).
 \end{theorem}
+
+The proof of \Cref{thm:amgm} is deferred to \Cref{sec:proof_amgm}.
 
 
 As stated in \Cref{assumption:strong_convexity}, we assume $f$ is $\mu$-strongly convex, i.e.  for all \( x, y \in X \) \Cref{eq:strong_convexity} holds. See results in \Cref{table:results}. We use \Cref{algo:proj_gd}.
@@ -130,13 +141,38 @@ ResNet152 & 95.2\% & 97.1\% & 36.5M \\
 \caption{Plain figures are not boxed: images work exactly as in standard \LaTeX{}.}\label{fig:demo}
 \end{figure}
 
-\Cref{fig:demo} shows how an image is included.
+\Cref{fig:demo} shows how an image is included. Several panels with their
+own captions are made with \texttt{subfigure}, see \Cref{fig:panels} and
+\Cref{fig:panel_b}.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[b]{0.48\columnwidth}
+  \centering
+  \includegraphics[width=\linewidth]{logos/isp.pdf}
+  \caption{First panel.}\label{fig:panel_a}
+\end{subfigure}\hfill
+\begin{subfigure}[b]{0.48\columnwidth}
+  \centering
+  \includegraphics[width=\linewidth]{logos/innopolis.pdf}
+  \caption{Second panel.}\label{fig:panel_b}
+\end{subfigure}
+\caption{Two panels side by side.}\label{fig:panels}
+\end{figure}
 
 \end{mainpart}
 
 \begin{appendixpart}
 
-\section{Proof of Theorem 1}
+% \Cref* — ссылка без гиперссылки, чтобы номер в заголовке не красился.
+% \texorpdfstring нужен для закладок PDF: туда идёт второй аргумент.
+\section{\texorpdfstring{Proof of \Cref*{thm:amgm}}{Proof of Theorem 1}}\label{sec:proof_amgm}
+
+\begin{proof}
+Since \( (a-b)^2 \geq 0 \), expanding the square gives \( a^2 - 2ab + b^2 \geq 0 \),
+which is exactly the claim.
+\end{proof}
+
 \lipsum[7]
 
 \section{Details of Implementation}

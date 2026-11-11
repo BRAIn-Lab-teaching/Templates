@@ -2,7 +2,10 @@
 \ProvidesPackage{shortcuts}[2025/06/02 v2.0 BRAIn Lab Shortcuts]
 
 \RequirePackage{amsmath, amssymb}
+% xparse и etoolbox — явно: в ядре LaTeX до 2020-10 (Overleaf, TeX Live 2020)
+% \NewDocumentCommand без xparse не определён; на новых ядрах это no-op.
 \RequirePackage{xparse}
+\RequirePackage{etoolbox}
 
 % ========== Оптимизированные математические обозначения ==========
 % Калиграфические (быстрые макросы)
@@ -167,7 +170,7 @@
     #2%
     \IfValueT{##1}{^{##1}}%
     \IfValueT{##2}{_{##2}}%
-    \IfBlankF{##3}{\qty{##3}}%
+    \ifblank{##3}{}{\qty{##3}}% etoolbox; \IfBlankF есть только с LaTeX 2022-06
   }%
 }
 \brainnewfunc{funcf}{f}

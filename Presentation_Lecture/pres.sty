@@ -1,5 +1,41 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{pres}[2025/09/30 Minimal beamer presets (venue/lang/nav)]
+\ProvidesPackage{pres}[2026/11/11 v3.1 Beamer presets (venue/lang/nav); совместим с pres и pres-2]
+
+% ==== Strict options (NO fallbacks) ====
+% Опции объявлены ДО зависимостей: часть пакетов грузится условно.
+\newcommand*\bb@venue{fpmi}
+\newcommand*\bb@lang{ru}
+\newcommand*\bb@nav{show}
+\newcommand*\bb@braces{smart}
+\newcommand*\bb@plots{on}
+\newcommand*\bb@braket{on}
+
+\DeclareOption{venue=fpmi}{\renewcommand*\bb@venue{fpmi}}
+\DeclareOption{venue=innopolis}{\renewcommand*\bb@venue{innopolis}}
+\DeclareOption{venue=isp}{\renewcommand*\bb@venue{isp}}
+
+\DeclareOption{lang=ru}{\renewcommand*\bb@lang{ru}}
+\DeclareOption{lang=en}{\renewcommand*\bb@lang{en}}
+
+\DeclareOption{navsymbols=show}{\renewcommand*\bb@nav{show}}
+\DeclareOption{navsymbols=hide}{\renewcommand*\bb@nav{hide}}
+
+\DeclareOption{braces=smart}{\renewcommand*\bb@braces{smart}}
+\DeclareOption{braces=physics}{\renewcommand*\bb@braces{physics}}
+
+\DeclareOption{plots=on}{\renewcommand*\bb@plots{on}}
+\DeclareOption{plots=off}{\renewcommand*\bb@plots{off}}
+
+\DeclareOption{braket=on}{\renewcommand*\bb@braket{on}}
+\DeclareOption{braket=off}{\renewcommand*\bb@braket{off}}
+
+% ANY other option -> HARD ERROR
+\DeclareOption*{%
+  \PackageError{pres}{Unknown option `\CurrentOption'}%
+  {Allowed options: venue=fpmi|innopolis|isp, lang=ru|en, navsymbols=show|hide,
+   braces=smart|physics, plots=on|off, braket=on|off.}%
+}
+\ProcessOptions\relax
 
 % ==== Dependencies ====
 % encodings/lang
@@ -21,20 +57,27 @@
 \RequirePackage{xcolor}
 \RequirePackage{graphicx}
 \RequirePackage{tikz}
-\usepackage{tikz-3dplot}
-\RequirePackage{pgfplots}
-\pgfplotsset{compat=1.17}
+\RequirePackage{etoolbox}
 \usetikzlibrary{
     positioning,
     calc,
     automata,
     arrows.meta,
     intersections,
-    fillbetween,
     decorations.markings,
     patterns,
-    patterns.meta
+    patterns.meta % перекрывает patterns; обе оставлены ради старых картинок
 }
+% графопостроители (pres-2). Отключаются опцией plots=off — они заметно
+% замедляют компиляцию и не нужны в докладах без графиков.
+\ifdefstring{\bb@plots}{on}{%
+  \RequirePackage{tikz-3dplot}%
+  \RequirePackage{pgfplots}%
+  \pgfplotsset{compat=1.17}% NB: актуальная версия — 1.18; поднимать отдельным коммитом
+  % fill between — библиотека pgfplots, а не tikz: через \usetikzlibrary
+  % она грузится не полностью и \addplot fill between падает
+  \usepgfplotslibrary{fillbetween}%
+}{}
 \RequirePackage{tcolorbox}
 \RequirePackage{svg} % требует --shell-escape и inkscape при реальном \includesvg
 % \RequirePackage{pstricks} % НЕ совместим с pdflatex; включать только под latex+dvips/xelatex
@@ -52,39 +95,25 @@
 \RequirePackage[stable]{footmisc}
 \RequirePackage[normalem]{ulem}
 \RequirePackage{pifont}
-\RequirePackage{braket}
+% braket подключается ПОСЛЕ physics и молча перекрывает \bra/\ket своими
+% версиями (он определяет их через \def). Отключается опцией braket=off.
+% Чтобы не ломать презентации, написанные под physics, \braket понимает оба
+% синтаксиса: \braket{a|b} (braket) и \braket{a}{b} (physics).
+\ifdefstring{\bb@braket}{on}{%
+  \RequirePackage{braket}%
+  \let\bb@braket@pkg\braket % braket.sty задаёт \braket через \def, \let достаточно
+  \RenewDocumentCommand\braket{m g}{%
+    \IfValueTF{#2}{\bb@braket@pkg{#1|#2}}{\bb@braket@pkg{#1}}}%
+}{}
 
 % algorithms
 \RequirePackage{algorithm}
 \RequirePackage{algpseudocode}
 
 % misc
-\RequirePackage{etoolbox}
 \RequirePackage{url}
 \RequirePackage{hyperref}
 \RequirePackage{bibentry}
-
-% ==== Strict options (NO fallbacks) ====
-\newcommand*\bb@venue{fpmi}
-\newcommand*\bb@lang{ru}
-\newcommand*\bb@nav{show}
-
-\DeclareOption{venue=fpmi}{\renewcommand*\bb@venue{fpmi}}
-\DeclareOption{venue=innopolis}{\renewcommand*\bb@venue{innopolis}}
-\DeclareOption{venue=isp}{\renewcommand*\bb@venue{isp}}
-
-\DeclareOption{lang=ru}{\renewcommand*\bb@lang{ru}}
-\DeclareOption{lang=en}{\renewcommand*\bb@lang{en}}
-
-\DeclareOption{navsymbols=show}{\renewcommand*\bb@nav{show}}
-\DeclareOption{navsymbols=hide}{\renewcommand*\bb@nav{hide}}
-
-% ANY other option -> HARD ERROR
-\DeclareOption*{%
-  \PackageError{brainbeamer}{Unknown option `\CurrentOption'}%
-  {Allowed options: venue=fpmi|innopolis|isp, lang=ru|en, navsymbols=show|hide.}%
-}
-\ProcessOptions\relax
 
 % ==== Theme skeleton (assumes \documentclass{beamer}) ====
 \mode<presentation>{\usetheme{Madrid}}
@@ -134,7 +163,7 @@
   \colorlet{secondary}{apricot}%
   \colorlet{accent}{amber}%
   \colorlet{surface}{papaya}%
-  \colorlet{background}{white}%
+  \colorlet{background}{white}% белый фон (раньше floral #FBF8F1)
   \colorlet{ink}{inkBerry}%
   \definecolor{onPrimary}{HTML}{FBF8F1}%
   \colorlet{onSecondary}{inkBerry}%
@@ -156,9 +185,9 @@
   \renewcommand*\InstituteLong{ИСП РАН}%
   \renewcommand*\LogoPath{logos/isp.png}%
 }{
-  \PackageError{brainbeamer}
+  \PackageError{pres}
         {Invalid value for option `venue`: \bb@venue}
-        {Allowed values: venue=fpmi|innopolis.}%
+        {Allowed values: venue=fpmi|innopolis|isp.}%
 }}}
 
 % ==== Beamer color bindings (общие для всех venue — как в исходном стилевике) ====
@@ -187,7 +216,8 @@
 
   % заголовки
   \setbeamercolor{frametitle}{bg=primary,fg=onPrimary}
-  \setbeamercolor{framesubtitle}{parent=,fg=primary}
+  % подзаголовок лежит на той же бордовой плашке, что и заголовок
+  \setbeamercolor{framesubtitle}{parent=,fg=secondary}
   % название лекции на титуле — плашка Apricot Cream под текстом
   \setbeamercolor{title}{parent=,bg=secondary,fg=primary}
   \setbeamercolor{subtitle}{fg=accent}
@@ -229,10 +259,15 @@
   },
 }
 \tcbset{presbox}
+% >=latex — наконечник по умолчанию для всех `->` (унаследовано из pres-2).
+% Это старый tip из библиотеки arrows; современный аналог при загруженной
+% arrows.meta — >={Latex[length=2mm]}, он согласован с presedge ниже.
+\tikzset{>=latex}
 \tikzset{
   presnode/.style={draw=primary, fill=surface, text=ink,
                    rounded corners=2pt, inner sep=4pt, line width=0.6pt},
   presedge/.style={draw=primary, -{Stealth[length=2mm]}, line width=0.6pt},
+  dot/.style={circle, fill, inner sep=1pt},
 }
 
 % бордовая полоска под верхним колонтитулом — только на титульном слайде и
@@ -244,14 +279,12 @@
   \addtobeamertemplate{title page}{\global\booltrue{bb@titleframe}}{}
   \addtobeamertemplate{headline}{}{%
     \ifbool{bb@titleframe}{%
-      \hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=2.2pt,dp=0pt]{headline rule}\end{beamercolorbox}}%
+      % нулевая высота: иначе шапка титула на 2.2pt выше рассчитанной -> Overfull \vbox
+      \nointerlineskip\vbox to 0pt{\hbox{\begin{beamercolorbox}[wd=\paperwidth,ht=2.2pt,dp=0pt]{headline rule}\end{beamercolorbox}}\vss}%
     }{}%
   }
   \addtobeamertemplate{footline}{}{\global\boolfalse{bb@titleframe}}
 }{}
-
-\newcommand{\AlgInput}[1]{\Statex \textbf{Вход:} #1}
-\newcommand{\AlgOutput}[1]{\Statex \textbf{Выход:} #1}
 
 % nav symbols (tiny buttons, not the miniframes bar)
 \expandafter\ifstrequal\expandafter{\bb@nav}{hide}{\setbeamertemplate{navigation symbols}{}}{}
@@ -267,9 +300,9 @@
   \renewcommand*{\NameTheorem}{Теорема}
   \renewcommand*{\NameLemma}{Лемма}
   \renewcommand*{\NameDefinition}{Определение}
-\renewcommand*{\NameProposition}{Утверждение}
+  \renewcommand*{\NameProposition}{Утверждение}
   \renewcommand*{\NameProof}{Доказательство}
-  \makeatletter\renewcommand{\ALG@name}{Алгоритм}\makeatother
+  \renewcommand{\ALG@name}{Алгоритм}
   \renewcommand{\algorithmicrequire}{\textbf{Вход:}}
   \renewcommand{\algorithmicensure}{\textbf{Выход:}}
   \AtBeginDocument{\renewcommand{\figurename}{Рис.}\renewcommand{\tablename}{Таблица}}
@@ -277,17 +310,26 @@
   \renewcommand*{\NameTheorem}{Theorem}
   \renewcommand*{\NameLemma}{Lemma}
   \renewcommand*{\NameDefinition}{Definition}
-    \renewcommand*{\NameProposition}{Proposition}
+  \renewcommand*{\NameProposition}{Proposition}
   \renewcommand*{\NameProof}{Proof}
-  \makeatletter\renewcommand{\ALG@name}{Algorithm}\makeatother
+  \renewcommand{\ALG@name}{Algorithm}
   \renewcommand{\algorithmicrequire}{\textbf{Input:}}
   \renewcommand{\algorithmicensure}{\textbf{Output:}}
   \AtBeginDocument{\renewcommand{\figurename}{Figure}\renewcommand{\tablename}{Table}}
 }{
-  \PackageError{brainbeamer}
-        {Invalid value for option `venue`: \bb@lang}
-        {Allowed values: venue=en|ru.}%
+  \PackageError{pres}
+        {Invalid value for option `lang`: \bb@lang}
+        {Allowed values: lang=en|ru.}%
 }}
+
+% Вход/Выход внутри algorithmic. В pres-2 подписи были жёстко русскими —
+% теперь берутся из \algorithmicrequire/\algorithmicensure и следуют lang=.
+% Объявляются в начале документа и только если автор не объявил их сам:
+% в старых презентациях под pres они часто определены в преамбуле.
+\AtBeginDocument{%
+  \providecommand{\AlgInput}[1]{\Statex \algorithmicrequire\ #1}%
+  \providecommand{\AlgOutput}[1]{\Statex \algorithmicensure\ #1}%
+}
 
 % нумерация подписей: "Рис. 1: ..." / "Таблица 1: ..." вместо "Рис.: ..."
 % (без этого beamer печатает подпись без номера и \ref на рисунок не работает)
@@ -297,13 +339,20 @@
 \newtheorem*{thm}{\NameTheorem}
 \newtheorem*{lem}{\NameLemma}
 \newtheorem*{defn}{\NameDefinition}
-\newtheorem*{prop}{\NameProposition}
-\renewenvironment{proof}[1][\NameProof]{\par\noindent\textit{#1.}\ }{\hfill$\square$\par}
+% prop появился позже thm/lem/defn, и старые презентации объявляют его сами
+% (\newtheorem*{prop}{...}) — поэтому создаём его, только если его нет.
+\AtBeginDocument{\ifcsundef{prop}{\newtheorem*{prop}{\NameProposition}}{}}
+% Заголовок и квадратик доказательства — отдельные команды, чтобы доказательство
+% можно было разорвать между кадрами: \proofhead в конце одного, \proofqed в другом.
+\newcommand{\proofhead}[1][\NameProof]{\par\noindent\textit{#1.}\ }
+\newcommand{\proofqed}{\hfill$\square$\par}
+\renewenvironment{proof}[1][\NameProof]{\proofhead[#1]}{\proofqed}
 
-\makeatletter
+% NB: \makeatletter/\makeatother здесь НЕ нужны — внутри .sty символ @ и так
+% буква, а \makeatother испортил бы каткод для всего остатка файла (именно
+% поэтому в pres-2 блок умных скобок ниже начинался с повторного \makeatletter).
 \renewcommand{\thealgorithm}{} % пустой счётчик
 \renewcommand{\fnum@algorithm}{\ALG@name} % подпись без номера
-\makeatother
 
 % ==== Text / math shortcuts ====
 \newcommand{\Exp}{\mathbf{E}}
@@ -338,29 +387,20 @@
   \newcommand{\pdflink}[2]{\vfill\href{#2}{\PDFbadge~\footnotesize #1}\par\vspace{0.2em}}
 }
 
-\titlegraphic{\includegraphics[height=0.8cm]{\LogoPath}}
-\institute[]{\InstituteLong}
-
-% ==== Exports users may want to use in main ====
-% \InstituteLong, \InstituteShort, \LogoPath available to \titlegraphic etc.
-% Цвета: primary, secondary, accent, surface, background, ink, onPrimary, onSecondary
-% Стили: tcolorbox presbox, tikz presnode/presedge
-
-% Done.
-
-\tikzset{>=latex}
-\tikzset{
-  dot/.style={circle, fill, inner sep=1pt}
-}
-
-\makeatletter
+% =====================================================================
+%  Умные скобки (из pres-2): содержимое измеряется, и если оно выше
+%  эталона x^{k+1+f}_f, ставятся \left..\right, иначе \bigl..\bigr.
+%  Отключается опцией braces=physics — тогда \qty/\norm/\scalar
+%  остаются такими, какими их определили physics/shortcuts (как в pres).
+% =====================================================================
+\ifdefstring{\bb@braces}{smart}{%
 
 \newsavebox\custombraces@box
 \newdimen\custombraces@cont@ht
 \newdimen\custombraces@min@ht
 \newif\ifcustombraces@useleft
 
-% % Минимальные скобки
+% Минимальные скобки
 \newcommand{\minleft}{\bigl}
 \newcommand{\minright}{\bigr}
 
@@ -412,7 +452,38 @@
     }
 }
 
-\RenewDocumentCommand\qty{ g d[] d() d|| }
+% \Provide... — страховка на случай, если physics/shortcuts сменят имена
+% или не будут загружены: тогда \Renew... ниже не свалится с ошибкой.
+\ProvideDocumentCommand\qty{ g d[] d() d|| }{}
+\ProvideDocumentCommand\norm{ m }{}
+\ProvideDocumentCommand\scalar{ m }{}
+
+% Оригиналы physics сохраняем: формы, которых умные скобки не знают
+% (\qty\big(..\big), \norm*{x}, \norm\Big{x}), отдаются им — иначе старые
+% презентации под physics молча печатают лишние символы.
+% Без \NewCommandCopy: его нет в ядре LaTeX до 2020-10 (Overleaf, TeX Live 2020),
+% а \let для xparse-команд не работает. Поэтому ссылаемся на исходники physics:
+% \qty — это просто \quantity, \norm — одна строка через \braces (physics.sty).
+\newcommand\bb@physics@qty{\quantity}
+\NewDocumentCommand\bb@physics@norm{ l m }{\braces#1{\lVert}{\rVert}{#2}}
+
+% \bb@sizedispatch{оригинал}{умная версия}: смотрит на следующий токен
+\newcommand\bb@sizedispatch[2]{%
+  \def\bb@sz@orig{#1}\def\bb@sz@smart{#2}%
+  \futurelet\bb@sz@next\bb@sz@dispatch}
+\newcommand\bb@sz@dispatch{%
+  \let\bb@sz@go\bb@sz@smart
+  \ifx\bb@sz@next*\let\bb@sz@go\bb@sz@orig\fi
+  \ifx\bb@sz@next\big\let\bb@sz@go\bb@sz@orig\fi
+  \ifx\bb@sz@next\Big\let\bb@sz@go\bb@sz@orig\fi
+  \ifx\bb@sz@next\bigg\let\bb@sz@go\bb@sz@orig\fi
+  \ifx\bb@sz@next\Bigg\let\bb@sz@go\bb@sz@orig\fi
+  \bb@sz@go}
+
+\RenewDocumentCommand\qty{}{\bb@sizedispatch{\bb@physics@qty}{\bb@smart@qty}}
+\RenewDocumentCommand\norm{}{\bb@sizedispatch{\bb@physics@norm}{\bb@smart@norm}}
+
+\NewDocumentCommand\bb@smart@qty{ g d[] d() d|| }
 {%
   \IfValueTF{#1}
     {{\custombraces@braces{\lbrace}{#1}{\rbrace}}}
@@ -431,7 +502,7 @@
   }%
 }
 
-\RenewDocumentCommand\norm{ m }
+\NewDocumentCommand\bb@smart@norm{ m }
 {%
   \ensuremath{\mathord{\custombraces@braces{\lVert}{#1}{\rVert}}}%
 }
@@ -439,3 +510,79 @@
 \RenewDocumentCommand{\scalar}{m}{%
   \ensuremath{\mathord{\custombraces@braces{\langle}{#1}{\rangle}}}%
 }
+}{}
+
+% ==== Exports users may want to use in main ====
+% \InstituteLong, \InstituteShort, \LogoPath available to \titlegraphic etc.
+% Цвета: primary, secondary, accent, surface, background, ink, onPrimary, onSecondary
+% Стили: tcolorbox presbox, tikz presnode/presedge/dot
+% Окружения: thm, lem, defn, prop, proof (+ \proofhead/\proofqed для разрыва)
+% Команды: \Exp \eqdef \ve \< , > \oldstuff \redstuff \cmark \xmark
+%          \blfootnote \PDFbadge \pdflink \AlgInput \AlgOutput
+% Логотипы: \AddLogo[опции]{файл}, \ClearLogos, \LogoRow
+%           параметры \LogoHeight \LogoSep \LogoMaxWidth
+
+% =====================================================================
+%  Логотипы на титуле
+%
+%  По умолчанию стоит один логотип площадки (\LogoPath). Дополнительные
+%  добавляются в преамбуле, после \usepackage{pres}:
+%
+%      \AddLogo{logos/brainlab.png}
+%      \AddLogo[height=1.1cm]{logos/iii.pdf}   % своя высота
+%      \AddLogo[width=2cm]{logos/wide.png}     % широкий логотип — по ширине
+%
+%  Порядок вывода = порядок вызовов, логотип площадки идёт первым.
+%  \ClearLogos убирает всё, включая логотип площадки, — если нужен
+%  совсем другой набор:
+%
+%      \ClearLogos
+%      \AddLogo{logos/a.png}\AddLogo{logos/b.png}
+%
+%  Настройки: \LogoHeight (высота по умолчанию), \LogoSep (промежуток),
+%  \LogoMaxWidth (если ряд шире — он целиком ужимается до этой ширины).
+% =====================================================================
+\newcommand*\LogoHeight{0.8cm}
+\newcommand*\LogoSep{1.2em}
+\newcommand*\LogoMaxWidth{0.9\paperwidth}
+
+\newsavebox\bb@logobox
+\newcommand*\bb@logolist{}
+
+% один логотип: [опции \includegraphics]{файл}. Логотипы центрируются друг
+% относительно друга по вертикали, поэтому разная высота выглядит опрятно.
+\newcommand{\bb@logo}[2]{%
+  \edef\bb@logo@path{#2}%
+  \ifdefempty{\bb@logo@path}{}{%
+    \raisebox{-0.5\height}{%
+      \ifblank{#1}%
+        {\includegraphics[height=\LogoHeight]{#2}}%
+        {\includegraphics[#1]{#2}}%
+    }%
+  }%
+}
+
+\newcommand{\AddLogo}[2][]{%
+  \ifdefempty{\bb@logolist}{}{\appto\bb@logolist{\hspace{\LogoSep}}}%
+  \eappto\bb@logolist{\noexpand\bb@logo{\unexpanded{#1}}{\unexpanded{#2}}}%
+}
+\newcommand{\ClearLogos}{\renewcommand*\bb@logolist{}}
+
+% ряд логотипов; если не влезает по ширине — ужимается целиком, с пропорциями
+\newcommand{\LogoRow}{%
+  \sbox\bb@logobox{\bb@logolist}%
+  \ifdim\wd\bb@logobox>\LogoMaxWidth\relax
+    \resizebox{\LogoMaxWidth}{!}{\usebox\bb@logobox}%
+  \else
+    \usebox\bb@logobox
+  \fi
+}
+
+% логотип площадки — первый в ряду. \LogoPath не разворачивается здесь,
+% поэтому его можно переопределить в .tex уже после \usepackage{pres}.
+\AddLogo{\LogoPath}
+
+\titlegraphic{\LogoRow}
+\institute[]{\InstituteLong}
+
+% Done.

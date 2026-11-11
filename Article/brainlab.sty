@@ -78,6 +78,16 @@
 \fi
 
 % ============================================================================
+% ВЕРСИЯ PDF
+
+% Логотипы сохранены как PDF 1.7, а pdfTeX по умолчанию пишет PDF 1.5 и на каждый
+% такой файл выдаёт предупреждение. Ставим 1.7 сразу, пока не создан выходной файл.
+% В LuaTeX и XeTeX этого примитива нет, поэтому проверка.
+\ifdefined\pdfminorversion
+  \pdfminorversion=7
+\fi
+
+% ============================================================================
 % ОСТАЛЬНЫЕ ПАКЕТЫ
 
 % Цвета (основные)
@@ -98,10 +108,15 @@
 % T2A остаётся доступной, поэтому кириллица в комментариях и в тексте наберётся.
 \RequirePackage[T2A,T1]{fontenc}
 \RequirePackage[english]{babel}
-\RequirePackage[top=0.8in, bottom=0.8in, left=0.5in, right=0.5in]{geometry}
+% Боковые поля по 1in: arXiv ставит вертикальный штамп (arXiv:XXXX.XXXXX [cs.LG] дата)
+% в левое поле, и он занимает примерно 0.9in от края. При полях 0.5in штамп
+% наезжал на текст.
+\RequirePackage[top=0.8in, bottom=0.8in, left=1in, right=1in]{geometry}
 \RequirePackage{multicol}
 \RequirePackage{titlesec}
 \RequirePackage[hypcap=false]{caption}
+\RequirePackage{subcaption}  % подрисунки (a), (b): окружения subfigure / subtable
+\RequirePackage{microtype}   % аккуратнее переносы и меньше переполненных строк в колонках
 \RequirePackage{fancyhdr}
 \RequirePackage{authblk}
 \RequirePackage{amsmath, amssymb, amsthm}
@@ -134,6 +149,7 @@
 
 \RequirePackage{tcolorbox}
 \tcbuselibrary{skins,breakable,xparse}
+\RequirePackage{varwidth}  % для переноса длинных заголовков боксов
 
 % ============================================================================
 % БАЗОВЫЕ НАСТРОЙКИ ДОКУМЕНТА
@@ -154,6 +170,7 @@
 \setlength{\parindent}{0pt}
 \captionsetup[table]{labelfont=bf, labelsep=colon, font=small}
 \captionsetup[figure]{labelfont=bf, labelsep=colon, font=small}
+\captionsetup[sub]{font=small, labelfont=normalfont}
 
 % ============================================================================
 % META-ИНФОРМАЦИЯ
@@ -179,8 +196,29 @@
     affiliations .code:n = { \renewcommand{\affils}{#1} },
     abstract   .code:n = { \renewcommand{\abstracttext}{#1} },
     additionallogos .code:n = { \renewcommand{\additionallogoslist}{#1}\showadditionallogostrue },
+    keywords   .code:n = { \renewcommand{\brain@keywords}{#1} },
   }
 \ExplSyntaxOff
+
+% --- Метаданные PDF (Title / Author / Keywords) ---
+% Берутся из \setbrainmeta. В строке PDF не бывает форматирования, поэтому
+% надстрочные номера аффилиаций, сноски и \\ из списка авторов выкидываются.
+% Если результат не устраивает, перекройте вручную после \setbrainmeta:
+%   \hypersetup{pdfauthor={Jane Doe, John Smith}}
+\providecommand{\brain@keywords}{}
+\pdfstringdefDisableCommands{%
+  \let\textsuperscript\@gobble
+  \let\footnote\@gobble
+  \let\thanks\@gobble
+  \def\\{, }%
+}
+\AtBeginDocument{%
+  \hypersetup{
+    pdftitle={\papertitle},
+    pdfauthor={\brainauthors},
+    pdfkeywords={\brain@keywords},
+  }%
+}
 
 % ============================================================================
 % ТИТУЛЬНЫЙ БЛОК
@@ -247,6 +285,11 @@
 % ОКРУЖЕНИЯ
 
 % --- Таблицы ---
+% Шрифт внутри таблиц. \small — как принято в статьях, иначе таблица на
+% \columnwidth в двухколоночном режиме легко вылезает за рамку.
+% Вернуть обычный размер: \renewcommand{\braintablefont}{\normalsize}
+\newcommand{\braintablefont}{\small}
+
 \newtcolorbox{braintablebox}[2][]{
   colback=boxcolor!15,
   colframe=boxcolor!60!black,
@@ -255,6 +298,7 @@
   width=#2,
   left=\brain@tableleftpad, right=\brain@tablerightpad,
   top=\brain@tabletopad, bottom=\brain@tablebottompad,
+  fontupper=\braintablefont,
   #1
 }
 
@@ -319,6 +363,14 @@
     fonttitle=\bfseries,
     coltitle=\brain@algo@title@coltitle,
     attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
     boxed title style={colback=\brain@algo@title@colback, colframe=braincolor},
     #1
   ]%
@@ -346,6 +398,14 @@
     breakable,
     enhanced jigsaw,
     attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
     boxed title style={colback=braincolor, colframe=braincolor},
     coltitle=white,
     fonttitle=\bfseries
@@ -361,6 +421,14 @@
     breakable,
     enhanced jigsaw,
     attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
     boxed title style={colback=boxcolor!15, colframe=braincolor},
     coltitle=black,
     fonttitle=\bfseries

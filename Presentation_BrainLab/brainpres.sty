@@ -1,0 +1,447 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{brainpres}[2026/11/11 BrainLab beamer theme for talks]
+
+% Тема beamer BrainLab для докладов и публичных выступлений.
+% Фирменная палитра и логотип BrainLab; декор титула, разделов и финала —
+% оригинальная графика шаблона (art/), карточки и списки рисуются TikZ.
+% \documentclass[aspectratio=169]{beamer}; собирать XeLaTeX или LuaLaTeX
+% (текст Montserrat, формулы — классический Latin Modern). Под pdflatex текст — Lato.
+
+% ==== Options (строгие: неизвестная опция — ошибка) ====
+\newcommand*\bl@lang{ru}
+\newcommand*\bl@sections{auto}
+\DeclareOption{lang=ru}{\renewcommand*\bl@lang{ru}}
+\DeclareOption{lang=en}{\renewcommand*\bl@lang{en}}
+\DeclareOption{sectionframes=auto}{\renewcommand*\bl@sections{auto}}
+\DeclareOption{sectionframes=off}{\renewcommand*\bl@sections{off}}
+\newcommand*\bl@font{montserrat}
+\def\bl@tmp#1{\DeclareOption{font=#1}{\renewcommand*\bl@font{#1}}}
+\bl@tmp{fira}\bl@tmp{montserrat}\bl@tmp{nunito}\bl@tmp{raleway}\bl@tmp{roboto}
+\bl@tmp{sourcesans}\bl@tmp{inter}\bl@tmp{arsenal}\bl@tmp{plex}\bl@tmp{comfortaa}
+\DeclareOption*{%
+  \PackageError{brainpres}{Unknown option `\CurrentOption'}%
+  {Allowed options: lang=ru|en, sectionframes=auto|off,
+   font=fira|montserrat|nunito|raleway|roboto|sourcesans|inter|arsenal|plex|comfortaa.}}
+\ProcessOptions\relax
+
+% ==== Fonts ====
+\RequirePackage{iftex}
+\RequirePackage{etoolbox}
+\RequirePackage{amsmath,amssymb,amsthm,mathtools}
+\iftutex
+  \usefonttheme{professionalfonts}
+  \RequirePackage{fontspec}
+  % \bl@setfont{семейство}{расширение}{regular}{italic}{bold}{bold italic}{light}{light italic}
+  \newcommand\bl@setfont[8]{\setsansfont{#1}[Extension=#2,
+    UprightFont=*-#3, ItalicFont=*-#4, BoldFont=*-#5, BoldItalicFont=*-#6,
+    FontFace={l}{n}{*-#7}, FontFace={l}{it}{*-#8}]}
+  \ifdefstring{\bl@font}{fira}{\bl@setfont{FiraSans}{.otf}{Book}{BookItalic}{SemiBold}{SemiBoldItalic}{Light}{LightItalic}}{}
+  \ifdefstring{\bl@font}{montserrat}{\bl@setfont{Montserrat}{.otf}{Regular}{Italic}{SemiBold}{SemiBoldItalic}{Light}{LightItalic}}{}
+  \ifdefstring{\bl@font}{nunito}{\bl@setfont{Nunito}{.otf}{Regular}{Italic}{Bold}{BoldItalic}{Light}{LightItalic}}{}
+  \ifdefstring{\bl@font}{raleway}{\bl@setfont{Raleway}{.otf}{Regular}{Regular-Italic}{SemiBold}{SemiBold-Italic}{Light}{Light-Italic}}{}
+  \ifdefstring{\bl@font}{roboto}{\bl@setfont{Roboto}{.otf}{Regular}{Italic}{Medium}{MediumItalic}{Light}{LightItalic}}{}
+  \ifdefstring{\bl@font}{sourcesans}{\bl@setfont{SourceSansPro}{.otf}{Regular}{RegularIt}{Semibold}{SemiboldIt}{Light}{LightIt}}{}
+  \ifdefstring{\bl@font}{inter}{\bl@setfont{Inter}{.otf}{Regular}{Italic}{SemiBold}{SemiBoldItalic}{Light}{LightItalic}}{}
+  \ifdefstring{\bl@font}{arsenal}{\bl@setfont{Arsenal}{.otf}{Regular}{Italic}{Bold}{BoldItalic}{Regular}{Italic}}{}
+  \ifdefstring{\bl@font}{plex}{\bl@setfont{IBMPlexSans}{.otf}{Regular}{Italic}{SemiBold}{SemiBoldItalic}{Light}{LightItalic}}{}
+  % comfortaa: заголовки Comfortaa (скруглённая, как логотип), текст Nunito
+  \ifdefstring{\bl@font}{comfortaa}{%
+    \bl@setfont{Nunito}{.otf}{Regular}{Italic}{Bold}{BoldItalic}{Light}{LightItalic}%
+    \newfontfamily\bl@headfam{Comfortaa}[Extension=.ttf,UprightFont=*-Regular,
+      BoldFont=*-Bold,FontFace={l}{n}{*-Light}]%
+    \AtEndOfPackage{\renewcommand\bl@head{\bl@headfam}}}{}
+  \setmonofont{FiraMono}[Extension=.otf,UprightFont=*-Regular,BoldFont=*-Bold,Scale=0.88]
+  \RequirePackage{unicode-math}
+  % формулы — классическим шрифтом LaTeX (Computer Modern / Latin Modern Math)
+  \setmathfont{latinmodern-math.otf}
+  % \boldsymbol из amsbsy с unicode-math не работает — жирный курсив через \symbfit;
+  % \bm — то же (пакет bm с unicode-math несовместим, подключать его не нужно)
+  \AtBeginDocument{\renewcommand{\boldsymbol}[1]{\symbfit{#1}}\providecommand{\bm}[1]{\symbfit{#1}}}
+\else
+  \PackageWarningNoLine{brainpres}{Theme fonts need XeLaTeX or LuaLaTeX.
+    Falling back to Lato under pdflatex}
+  \RequirePackage[T1,T2A]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage[defaultsans]{lato}
+  \usefonttheme[onlymath]{serif}   % формулы — классическим Computer Modern
+\fi
+\newcommand\bl@light{\fontseries{l}\selectfont}
+\newcommand\bl@head{}   % шрифт заголовков (пусто = основной)
+\RequirePackage[english,russian]{babel}
+
+% ==== Other dependencies ====
+\RequirePackage{physics}
+\RequirePackage{shortcuts}
+\RequirePackage{xcolor,graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{positioning,calc,arrows.meta}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{booktabs,multirow,tabularx}
+\RequirePackage{algorithm}
+\RequirePackage{algpseudocode}
+\RequirePackage{pifont}
+
+\setbeamertemplate{navigation symbols}{}
+
+% ==== Palette ====
+\definecolor{brainMaroon}{HTML}{854C65}
+\definecolor{brainMaroonDark}{HTML}{5B3445}
+\definecolor{brainPlum}{HTML}{412430}
+\definecolor{brainCream}{HTML}{FAF8F1}
+\definecolor{brainPapaya}{HTML}{FBEDD6}
+\definecolor{brainGold}{HTML}{F0C987}
+\definecolor{brainGoldDark}{HTML}{A8731C}
+\definecolor{brainSky}{HTML}{9DE1FC}
+\definecolor{brainBlue}{HTML}{0681B2}
+\definecolor{brainMauve}{HTML}{C397AA}
+\definecolor{statusOk}{HTML}{4C7A3F}
+\definecolor{statusBad}{HTML}{B03A48}
+
+% ==== Light / dark modes ====
+% Роли: blbg, bltitle, bltext, blmuted, blaccent, blitem, blitemtext, blnumber,
+%       blockbg, blocktext, blrule
+\newcommand*\bl@markfile{mark-light}
+\newcommand\bl@modelight{%
+  \colorlet{blbg}{brainCream}\colorlet{bltitle}{brainMaroon}%
+  \colorlet{bltext}{brainMaroonDark}\colorlet{blmuted}{brainMaroon!55!brainCream}%
+  \colorlet{blaccent}{brainBlue}\colorlet{blitem}{brainMaroon}%
+  \colorlet{blitemtext}{brainCream}\colorlet{blnumber}{brainGoldDark}%
+  \colorlet{blockbg}{white}\colorlet{blocktext}{brainMaroonDark}%
+  \colorlet{blrule}{brainMaroon!14!brainCream}%
+  \colorlet{blhero}{brainMaroon}\colorlet{blheroaccent}{brainGoldDark}%
+  \renewcommand*\bl@markfile{mark-light}\bl@applycolors}
+\newcommand\bl@modedark{%
+  \colorlet{blbg}{brainMaroon}\colorlet{bltitle}{brainGold}%
+  \colorlet{bltext}{brainCream}\colorlet{blmuted}{brainCream!60!brainMaroon}%
+  \colorlet{blaccent}{brainSky}\colorlet{blitem}{brainGold}%
+  \colorlet{blitemtext}{brainMaroonDark}\colorlet{blnumber}{brainGold}%
+  \colorlet{blockbg}{brainMaroonDark}\colorlet{blocktext}{brainCream}%
+  \colorlet{blrule}{brainCream!18!brainMaroon}%
+  \colorlet{blhero}{brainCream}\colorlet{blheroaccent}{brainGold}%
+  \renewcommand*\bl@markfile{mark-dark}\bl@applycolors}
+\newcommand\bl@applycolors{%
+  \setbeamercolor{background canvas}{bg=blbg}%
+  \setbeamercolor{normal text}{fg=bltext,bg=blbg}%
+  \setbeamercolor{frametitle}{fg=bltitle}\setbeamercolor{framesubtitle}{fg=blmuted}%
+  \setbeamercolor{title}{fg=bltitle}\setbeamercolor{structure}{fg=bltitle}%
+  \setbeamercolor{alerted text}{fg=blaccent}%
+  \setbeamercolor{item}{fg=blitem}\setbeamercolor{subitem}{fg=blmuted}%
+  \setbeamercolor{caption name}{fg=bltitle}%
+  \setbeamercolor{bibliography item}{fg=bltitle}%
+}
+% Опции кадра в beamer не локальны, поэтому перед каждым кадром — светлый режим,
+% а ключ [dark] переключает в тёмный.
+\define@key{beamerframe}{dark}[true]{\bl@modedark}
+\BeforeBeginEnvironment{frame}{\bl@modelight}
+\bl@modelight
+
+% ==== Paths ====
+\newcommand*\bl@logodir{logos}
+\newcommand\setbrainlogodir[1]{\renewcommand*\bl@logodir{#1}}
+\newcommand\bl@logo[2][]{\includegraphics[#1]{\bl@logodir/#2.png}}
+
+% ==== Fonts & geometry ====
+\setbeamersize{text margin left=0.9cm,text margin right=0.9cm}
+\setbeamerfont{frametitle}{size=\fontsize{18}{22}\selectfont\bl@head,series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\fontsize{10.5}{13}\selectfont,series=\mdseries}
+\setbeamerfont{block title}{size=\small,series=\bfseries}
+\setbeamerfont{caption}{size=\footnotesize}
+\setbeamerfont{footline}{size=\fontsize{6.5}{8}\selectfont}
+
+% ==== Headline / frame title / footline ====
+% маленький знак BrainLab в правом верхнем углу (не занимает места)
+\setbeamertemplate{headline}{%
+  \vbox to 0pt{\vskip0.5cm\hbox to\paperwidth{\hfill
+    \bl@logo[height=0.42cm]{\bl@markfile}\hspace*{0.6cm}}\vss}}
+\setbeamertemplate{frametitle}{%
+  \vskip0.55cm
+  \begin{minipage}{\dimexpr\textwidth-0.8cm\relax}
+    \raggedright\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle\par
+    \ifx\insertframesubtitle\@empty\else
+      \vskip0.12cm{\usebeamerfont{framesubtitle}\usebeamercolor[fg]{framesubtitle}\insertframesubtitle\par}%
+    \fi
+  \end{minipage}\par
+  \vskip0.25cm}
+% внизу: короткое название слева, номер справа, тонкая полоса прогресса
+\newlength\bl@progress
+\setbeamertemplate{footline}{%
+  \usebeamerfont{footline}%
+  \hbox to\paperwidth{\hspace*{0.9cm}{\color{blmuted}\insertshorttitle}\hfill
+    {\color{blmuted}\insertframenumber\,/\,\inserttotalframenumber}\hspace*{0.9cm}}%
+  \vskip0.28cm
+  \ifnum\inserttotalframenumber>0
+    \setlength\bl@progress{\dimexpr\paperwidth*\insertframenumber/\inserttotalframenumber\relax}%
+  \else\setlength\bl@progress{0pt}\fi
+  \hbox to\paperwidth{\color{blrule}\rule{\paperwidth}{1.2pt}\hskip-\paperwidth
+    \color{bltitle}\rule{\bl@progress}{1.2pt}\hss}}
+
+% ==== Lists ====
+\setbeamertemplate{itemize item}{\raisebox{0.28ex}{\tikz\fill[blitem] (0,0) circle (0.4ex);}}
+\setbeamertemplate{itemize subitem}{\raisebox{0.32ex}{\tikz\draw[blitem,line width=0.6pt] (0,0) circle (0.32ex);}}
+\setbeamertemplate{itemize subsubitem}{\raisebox{0.4ex}{\tikz\fill[blmuted] (0,0) circle (0.22ex);}}
+\setbeamertemplate{enumerate item}{%
+  \tikz[baseline=(n.base)]\node[circle,fill=blitem,text=blitemtext,inner sep=0pt,
+    minimum size=1.45em,font=\scriptsize\bfseries](n){\insertenumlabel};}
+\setbeamertemplate{enumerate subitem}{\color{blitem}\bfseries\insertsubenumlabel)}
+\setbeamertemplate{caption}[numbered]
+
+% план доклада: 01, 02, ...
+\newcommand\bl@twodigits[1]{\ifnum#1<10 0\fi#1}
+\setbeamertemplate{section in toc}{%
+  \leavevmode\makebox[2.2em][l]{\color{blnumber}\bfseries\bl@twodigits{\inserttocsectionnumber}}%
+  {\color{bltext}\large\inserttocsection}\par\vskip0.35em}
+\setbeamertemplate{subsection in toc}{%
+  \leavevmode\hspace*{2.2em}{\color{blmuted}\small\inserttocsubsection}\par}
+
+% ==== Blocks & cards ====
+% Белая карточка с цветной полосой слева; заголовок — внутри, цветом полосы.
+\tcbset{
+  bl block/.style={
+    enhanced, frame hidden, boxrule=0pt, arc=1.6mm,
+    colback=blockbg, coltext=blocktext,
+    borderline west={2.4pt}{0pt}{#1},
+    left=3.2mm, right=3.2mm, top=2.4mm, bottom=2.4mm,
+    before skip=2.5mm, after skip=2.5mm,
+    fonttitle=\usebeamerfont{block title}, coltitle=#1,
+    detach title, before upper={\raggedright
+      \ifx\tcbtitletext\@empty\else\tcbtitle\par\vskip1.2mm\fi},
+  },
+  bl block/.default=bltitle,
+  presbox/.style={bl block},
+}
+\newtcolorbox{card}[2][]{bl block, title={#2}, #1}
+\newtcolorbox{cardgold}[2][]{bl block=blnumber, title={#2}, #1}
+\newtcolorbox{plaincard}[1][]{bl block, #1}
+\setbeamertemplate{block begin}{\begin{tcolorbox}[bl block=bltitle,title={\insertblocktitle}]}
+\setbeamertemplate{block end}{\end{tcolorbox}}
+\setbeamertemplate{block alerted begin}{\begin{tcolorbox}[bl block=blaccent,title={\insertblocktitle}]}
+\setbeamertemplate{block alerted end}{\end{tcolorbox}}
+\setbeamertemplate{block example begin}{\begin{tcolorbox}[bl block=blnumber,title={\insertblocktitle}]}
+\setbeamertemplate{block example end}{\end{tcolorbox}}
+
+% Карточка с крупной цифрой: \statcard{87\%}{подпись}
+\newcommand\statcard[3][]{%
+  \begin{tcolorbox}[bl block=blnumber, #1]
+    {\color{bltitle}\bl@head\fontsize{30}{32}\selectfont\bl@light #2\par}\vskip1.5mm
+    {\small #3\par}
+  \end{tcolorbox}}
+
+\tikzset{
+  presnode/.style={draw=bltitle, fill=blockbg, text=blocktext,
+                   rounded corners=2pt, inner sep=4pt, line width=0.6pt},
+  presedge/.style={draw=bltitle, -{Stealth[length=2mm]}, line width=0.6pt},
+}
+
+% ==== Art: оригинальная графика шаблона (папка art/) ====
+% Позиции, повороты и прозрачность взяты из pptx как есть (в см страницы 16 x 9,
+% y — от верхнего края). \bl@pic{файл}{x}{y}{w}{h}{поворот по часовой, град}{непрозрачность}
+\newcommand*\bl@artdir{art}
+\newcommand\setbrainartdir[1]{\renewcommand*\bl@artdir{#1}}
+\newcommand\bl@pic[7]{%
+  \pgfmathsetmacro\bl@cx{(#2)+(#4)/2}\pgfmathsetmacro\bl@cy{9-(#3)-(#5)/2}%
+  \node[inner sep=0pt,rotate=-#6,opacity=#7] at (\bl@cx,\bl@cy)
+    {\includegraphics[width=#4cm,height=#5cm]{\bl@artdir/#1.png}};}
+% \bl@defart{имя}{режим: dark|light}{ширина названия на титуле}{рисование}
+\newcommand\bl@defart[4]{\csdef{bl@art@#1}{#4}\csdef{bl@artmode@#1}{#2}\csdef{bl@artw@#1}{#3}}
+\bl@defart{network}{dark}{8.8cm}{%
+  \bl@pic{network-faint}{6.51}{-1.43}{9.32}{10.76}{345.30}{0.07}%
+  \bl@pic{network}{9.89}{-0.84}{6.11}{6.91}{165}{1}}
+\bl@defart{network-light}{light}{9cm}{%
+  \bl@pic{network-light-faint}{-0.01}{1.82}{4.59}{5.19}{345.75}{0.10}%
+  \bl@pic{network}{10.04}{-0.43}{5.21}{5.89}{165}{1}}
+\bl@defart{molecule}{dark}{10cm}{%
+  \bl@pic{molecule-watermark}{5.83}{-1.31}{10.95}{12.20}{0}{0.05}}
+\bl@defart{molecule-light}{light}{10cm}{%
+  \bl@pic{mark-watermark}{5.76}{-1.47}{11.12}{12.41}{0}{0.05}}
+\bl@defart{nodes}{dark}{10.5cm}{%
+  \bl@pic{nodes}{6.94}{-1.21}{9.63}{11.09}{0}{0.05}%
+  \bl@pic{nodes}{-4.64}{-4.05}{9.63}{11.09}{251.82}{0.05}}
+\bl@defart{nodes-light}{light}{10.5cm}{%
+  \bl@pic{nodes}{6.94}{-1.21}{9.63}{11.09}{0}{0.10}%
+  \bl@pic{nodes}{-4.41}{-3.86}{9.63}{11.09}{251.82}{0.10}}
+\bl@defart{3d}{dark}{6.2cm}{%
+  \bl@pic{molecule-3d-b}{3.40}{-3.43}{15.72}{15.72}{345.16}{1}}
+\bl@defart{3d-light}{light}{6.6cm}{%
+  \bl@pic{molecule-3d-a}{6.05}{-1.01}{11.41}{11.41}{2.87}{1}}
+\bl@defart{3d-side}{light}{8.2cm}{%
+  \bl@pic{molecule-3d-c}{4.99}{-2.66}{14.32}{14.32}{339.09}{0.85}}
+\bl@defart{3d-blue}{light}{8.6cm}{%
+  \bl@pic{molecule-3d-blue}{7.66}{-1.09}{8.77}{8.77}{331.87}{1}}
+\bl@defart{section-molecule}{light}{10cm}{%
+  \bl@pic{section-molecule}{6.89}{0.15}{8.72}{9.86}{0}{0.09}}
+\bl@defart{none}{dark}{12cm}{}
+\bl@defart{none-light}{light}{12cm}{}
+
+% выбор арта для кадра: ставит режим (тёмный/светлый) и запоминает рисование
+\newcommand\bl@useart[1]{%
+  \ifcsdef{bl@art@#1}{}{\PackageError{brainpres}{Unknown art `#1'}%
+    {Use one of: network, network-light, molecule, molecule-light, nodes, nodes-light,
+     3d, 3d-light, 3d-side, 3d-blue, section-molecule, none, none-light.}}%
+  \def\bl@artname{#1}%
+  \ifcsstring{bl@artmode@#1}{dark}{\bl@modedark\def\bl@isdark{1}}{\bl@modelight\def\bl@isdark{0}}}
+\def\bl@isdark{1}\def\bl@artname{none}
+\newcommand\bl@drawart{\csuse{bl@art@\bl@artname}}
+\newcommand\bl@biglogo{\ifnum\bl@isdark=1 brainlab-dark\else brainlab-light\fi}
+
+% полноэкранная подложка для титула / разделов / финала
+\newcommand\bl@canvas[1]{%
+  \begin{tikzpicture}[remember picture,overlay,shift={(current page.south west)}]
+    \fill[blbg] (0,0) rectangle (16,9);
+    \bl@drawart
+    #1
+  \end{tikzpicture}}
+
+\newcommand\bl@nohyph{\hyphenpenalty=10000\exhyphenpenalty=10000\raggedright}
+
+% ==== Title frame ====
+\newcommand*\bl@titlewidthuser{}
+\newcommand\settitlewidth[1]{\renewcommand*\bl@titlewidthuser{#1}}
+\newcommand*\bl@titleart{network}
+\newcommand\settitleart[1]{\renewcommand*\bl@titleart{#1}}
+\setbeamertemplate{title page}{%
+  \ifx\bl@titlewidthuser\@empty\letcs\bl@tw{bl@artw@\bl@artname}\else\let\bl@tw\bl@titlewidthuser\fi
+  \bl@canvas{%
+    \node[anchor=north west,inner sep=0pt] at (0.9,8.35) {\bl@logo[height=1cm]{\bl@biglogo}};
+    % название, черта и подзаголовок — одним блоком сверху вниз под логотипом
+    \node[anchor=north west,inner sep=0pt,text width=\bl@tw] at (0.9,6.55)
+      {\bl@nohyph\color{blhero}\bl@head\fontsize{20}{24}\selectfont\bfseries\inserttitle\par
+       \vskip3.2mm{\color{blheroaccent}\rule{1.3cm}{0.7mm}}\par\vskip2.6mm
+       {\color{blheroaccent}\fontsize{12.5}{15.5}\selectfont\mdseries\insertsubtitle\par}};
+    \node[anchor=south west,inner sep=0pt,text width=\bl@tw] at (0.9,0.7)
+      {\color{blhero}\normalsize\insertauthor\par\vskip1mm
+       \color{blmuted}\footnotesize
+       \ifx\insertinstitute\@empty\else\insertinstitute\ \textbullet\ \fi\insertdate\par};
+  }}
+% \titleframe[арт] — титульный кадр одной командой
+\newcommand\titleframe[1][\bl@titleart]{%
+  \begin{frame}[plain]\bl@useart{#1}\titlepage\end{frame}}
+
+% ==== Section frame ====
+% \sectionframe[арт] — номер и название текущего раздела; при sectionframes=auto
+% вставляется сам после каждого \section{...}
+\newcommand*\bl@sectionart{nodes}
+\newcommand\setsectionart[1]{\renewcommand*\bl@sectionart{#1}}
+\newcommand\sectionframe[1][\bl@sectionart]{%
+  \begin{frame}[plain]
+    \bl@useart{#1}%
+    \bl@canvas{%
+      \node[anchor=south west,inner sep=0pt] at (0.9,4.75)
+        {\color{blheroaccent}\bl@head\fontsize{46}{46}\selectfont\bl@light\bl@twodigits{\insertsectionnumber}};
+      \node[anchor=north west,inner sep=0pt,text width=9.5cm] at (0.9,4.4)
+        {\bl@nohyph\color{blhero}\bl@head\fontsize{24}{28}\selectfont\bfseries\insertsection\par};
+      \node[anchor=south west,inner sep=0pt] at (0.9,0.75) {\bl@logo[height=0.5cm]{\bl@markfile}};
+    }
+  \end{frame}}
+\ifdefstring{\bl@sections}{auto}{\AtBeginSection{\sectionframe}}{}
+
+% ==== Final frame ====
+% \finalframe[qr.png]{Спасибо!}{контакты}; арт — \setfinalart{...} (по умолчанию 3d)
+\newcommand*\bl@finalart{3d}
+\newcommand\setfinalart[1]{\renewcommand*\bl@finalart{#1}}
+\newcommand\finalframe[3][]{%
+  \begin{frame}[plain]
+    \ifstrempty{#1}{\bl@useart{\bl@finalart}}{\bl@useart{none}}%
+    \bl@canvas{%
+      \ifstrempty{#1}{}{%
+        \fill[brainCream] (11.1,2.35) rectangle ++(4.0,4.0);
+        \node[inner sep=0pt] at (13.1,4.35) {\includegraphics[width=3.5cm]{#1}};}
+      \node[anchor=north west,inner sep=0pt] at (0.9,8.35) {\bl@logo[height=1cm]{\bl@biglogo}};
+      % крупная надпись, черта и контакты — одним блоком сверху вниз под логотипом
+      \node[anchor=north west,inner sep=0pt,text width=\csuse{bl@artw@\bl@artname}] at (0.9,6.3)
+        {\bl@nohyph\color{blhero}\bl@head\fontsize{28}{33}\selectfont\bl@light #2\par
+         \vskip3.2mm{\color{blheroaccent}\rule{1.3cm}{0.7mm}}\par\vskip2.6mm
+         {\color{blheroaccent}\small #3\par}};
+    }
+  \end{frame}}
+
+% ==== Statement (крупная мысль) ====
+% внутри кадра: \begin{frame}[dark] \statement{...} \end{frame}
+\newcommand\statement[2][]{%
+  \vfill
+  \parbox{12.5cm}{\bl@nohyph\color{bltitle}\bl@head\fontsize{27}{33}\selectfont\bl@light #2\par
+    \ifstrempty{#1}{}{\vskip4mm{\color{blmuted}\normalsize #1\par}}}%
+  \vfill}
+\let\mainpoint\statement
+
+% ==== Quote ====
+% \quoteframe{цитата}{автор}
+\newcommand\quoteframe[2]{%
+  \begin{frame}[plain]
+    \begin{tikzpicture}[remember picture,overlay,shift={(current page.south west)}]
+      \node[anchor=north west,inner sep=0pt] at (0.8,8.4)
+        {\color{brainGold}\fontsize{110}{110}\selectfont\bfseries\guillemotleft};
+      \node[anchor=north west,inner sep=0pt,text width=12.5cm] at (1.6,5.9)
+        {\bl@nohyph\color{brainMaroonDark}\fontsize{21}{27}\selectfont\bl@light #1\par
+         \vskip5mm{\color{brainMaroon}\normalsize\bfseries --- #2\par}};
+      \node[anchor=south east,inner sep=0pt] at (15.4,0.6) {\bl@logo[height=0.42cm]{mark-light}};
+    \end{tikzpicture}
+  \end{frame}}
+
+% ==== Image frame (фото на левую половину) ====
+% \imageframe{файл}{Заголовок}{Текст}
+\newsavebox\bl@imgbox
+\newcommand\imageframe[3]{%
+  \begin{frame}[plain]
+    \sbox\bl@imgbox{\includegraphics{#1}}%
+    \begin{tikzpicture}[remember picture,overlay,shift={(current page.south west)}]
+      \begin{scope}
+        \clip (0,0) rectangle (8,9);
+        \ifdim\dimexpr\wd\bl@imgbox*9/8\relax>\ht\bl@imgbox
+          \node[inner sep=0pt] at (4,4.5) {\includegraphics[height=9cm]{#1}};
+        \else
+          \node[inner sep=0pt] at (4,4.5) {\includegraphics[width=8cm]{#1}};
+        \fi
+      \end{scope}
+      \node[anchor=west,inner sep=0pt,text width=6.4cm] at (8.9,4.5)
+        {\bl@nohyph{\color{brainMaroon}\bl@head\fontsize{20}{24}\selectfont\bfseries #2\par}
+         \vskip4mm{\color{brainMaroonDark}#3\par}};
+      \node[anchor=north east,inner sep=0pt] at (15.4,8.5) {\bl@logo[height=0.42cm]{mark-light}};
+    \end{tikzpicture}
+  \end{frame}}
+
+% ==== Theorems / Algorithm captions per language ====
+\newcommand*{\NameTheorem}{}\newcommand*{\NameLemma}{}
+\newcommand*{\NameDefinition}{}\newcommand*{\NameProof}{}
+\ifdefstring{\bl@lang}{ru}{%
+  \renewcommand*{\NameTheorem}{Теорема}\renewcommand*{\NameLemma}{Лемма}%
+  \renewcommand*{\NameDefinition}{Определение}\renewcommand*{\NameProof}{Доказательство}%
+  \renewcommand{\ALG@name}{Алгоритм}%
+  \renewcommand{\algorithmicrequire}{\textbf{Вход:}}%
+  \renewcommand{\algorithmicensure}{\textbf{Выход:}}%
+  \AtBeginDocument{\renewcommand{\figurename}{Рис.}\renewcommand{\tablename}{Таблица}%
+    \renewcommand{\contentsname}{План}}%
+}{%
+  \renewcommand*{\NameTheorem}{Theorem}\renewcommand*{\NameLemma}{Lemma}%
+  \renewcommand*{\NameDefinition}{Definition}\renewcommand*{\NameProof}{Proof}%
+  \renewcommand{\ALG@name}{Algorithm}%
+  \renewcommand{\algorithmicrequire}{\textbf{Input:}}%
+  \renewcommand{\algorithmicensure}{\textbf{Output:}}%
+  \AtBeginDocument{\renewcommand{\figurename}{Figure}\renewcommand{\tablename}{Table}%
+    \renewcommand{\contentsname}{Outline}}%
+}
+\setbeamertemplate{theorems}[unnumbered]
+\newtheorem*{thm}{\NameTheorem}
+\newtheorem*{lem}{\NameLemma}
+\newtheorem*{defn}{\NameDefinition}
+\newcommand{\proofhead}[1][\NameProof]{\par\noindent\textit{#1.}\ }
+\newcommand{\proofqed}{\hfill$\square$\par}
+\renewenvironment{proof}[1][\NameProof]{\proofhead[#1]}{\proofqed}
+\renewcommand{\thealgorithm}{}
+\renewcommand{\fnum@algorithm}{\ALG@name}
+
+% ==== Text / math shortcuts ====
+\newcommand{\Exp}{\mathbf{E}}
+\newcommand{\eqdef}{\stackrel{\text{def}}{=}}
+\newcommand{\ve}[2]{\left\langle #1 , #2 \right\rangle}
+\def\<#1,#2>{\left\langle #1,#2\right\rangle}
+\newcommand{\oldstuff}[1]{{\small\color{blmuted} #1}}
+\newcommand{\redstuff}[1]{{\small\color{statusBad} #1}}
+\newcommand{\cmark}{{\color{statusOk}\ding{51}}}
+\newcommand{\xmark}{{\color{statusBad}\ding{55}}}
+\newcommand\blfootnote[1]{\begingroup\renewcommand\thefootnote{}\footnote{#1}%
+  \addtocounter{footnote}{-1}\endgroup}
+\newcommand{\PDFbadge}{\tikz[baseline=-0.6ex]{\node[rounded corners=1pt,inner sep=2.5pt,
+  text=blbg,fill=bltitle,font=\scriptsize\bfseries]{PDF};}}
+\newcommand{\pdflink}[2]{\href{#2}{\PDFbadge~\footnotesize\color{blaccent} #1}}
+
+\endinput

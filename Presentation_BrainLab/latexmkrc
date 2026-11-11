@@ -1,0 +1,2 @@
+# Собирать XeLaTeX: текст Montserrat, формулы Latin Modern (Overleaf тоже читает этот файл)
+$pdf_mode = 5;

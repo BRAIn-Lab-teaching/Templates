@@ -68,6 +68,11 @@
 \DeclareStringOption[297mm]{posterwidth}
 \DeclareStringOption[210mm]{posterheight}
 \DeclareStringOption[4]{postercolumns}
+% Увеличение готовой страницы. posterwidth/posterheight — итоговый размер
+% листа, а верстается постер на листе в scale раз меньше. Оформление
+% рассчитано на A3, поэтому для форматов той же формы:
+%   A3 -> 1, A2 -> 1.41, A1 -> 2, A0 -> 2.83 (каждый следующий в √2 раз больше).
+\DeclareStringOption[1]{scale}
 
 % Три основных цвета (временные, будут переопределены)
 \definecolor{braincolor}{RGB}{141,72,102}
@@ -94,6 +99,9 @@
 \DeclareStringOption[10pt]{algorrightpad}
 \DeclareStringOption[8pt]{algortopad}
 \DeclareStringOption[8pt]{algorbottompad}
+% padding задаёт все двенадцать отступов сразу. Значения по умолчанию НЕТ,
+% иначе проверка ниже срабатывала бы всегда и затирала индивидуальные отступы.
+\DeclareStringOption{padding}
 
 % --- Стиль алгоритмов, таблиц и рисунков ---
 \DeclareBoolOption[false]{boxedalgorithm}
@@ -113,6 +121,73 @@
 % 4. ОБРАБОТКА ОПЦИЙ
 % ============================================================================
 \ProcessKeyvalOptions{brain}
+
+\ifx\brain@padding\@empty\else
+  \def\brain@titleleftpad{\brain@padding}\def\brain@titlerightpad{\brain@padding}%
+  \def\brain@titletopad{\brain@padding}\def\brain@titlebottompad{\brain@padding}%
+  \def\brain@tableleftpad{\brain@padding}\def\brain@tablerightpad{\brain@padding}%
+  \def\brain@tabletopad{\brain@padding}\def\brain@tablebottompad{\brain@padding}%
+  \def\brain@algorleftpad{\brain@padding}\def\brain@algorrightpad{\brain@padding}%
+  \def\brain@algortopad{\brain@padding}\def\brain@algorbottompad{\brain@padding}%
+\fi
+
+% ============================================================================
+% 4a. МАСШТАБ (опция scale)
+% ============================================================================
+% Постер верстается на листе (posterwidth / scale) × (posterheight / scale) —
+% для A0 со scale=2.83 это ровно A3, — а при выводе в PDF страница целиком
+% увеличивается в scale раз. Поэтому на любом формате вёрстка совпадает с A3
+% один в один: те же переносы, те же разрывы колонок, все размеры
+% пропорциональны. Текст и графика остаются векторными.
+%
+% Хук shipout срабатывает последним, когда шапка (фон страницы) уже
+% добавлена в бокс, — масштабируется всё вместе.
+\ExplSyntaxOn
+\fp_const:Nn  \c_brain_scale_fp      { \brain@scale }
+\dim_const:Nn \c_brain_outwidth_dim  { \brain@posterwidth }
+\dim_const:Nn \c_brain_outheight_dim { \brain@posterheight }
+\tl_const:Nx  \c_brain_designwidth_tl
+  { \fp_to_dim:n { \c_brain_outwidth_dim / \c_brain_scale_fp } }
+\tl_const:Nx  \c_brain_designheight_tl
+  { \fp_to_dim:n { \c_brain_outheight_dim / \c_brain_scale_fp } }
+\let\brain@designwidth  \c_brain_designwidth_tl
+\let\brain@designheight \c_brain_designheight_tl
+
+\cs_new_protected:Npn \__brain_output_page:
+  {
+    % Бокс страницы TeX ставит со сдвигом 1in + \hoffset от угла листа;
+    % этот сдвиг увеличиваем вместе с содержимым.
+    \box_scale:Nnn \ShipoutBox { \c_brain_scale_fp } { \c_brain_scale_fp }
+    \sys_if_engine_luatex:TF
+      {
+        \pagewidth  = \c_brain_outwidth_dim
+        \pageheight = \c_brain_outheight_dim
+        \pdfvariable horigin = \fp_to_dim:n
+          { \c_brain_scale_fp * ( 1in + \hoffset ) - \hoffset }
+        \pdfvariable vorigin = \fp_to_dim:n
+          { \c_brain_scale_fp * ( 1in + \voffset ) - \voffset }
+      }
+      {
+        \pdfpagewidth  = \c_brain_outwidth_dim
+        \pdfpageheight = \c_brain_outheight_dim
+        \pdfhorigin = \fp_to_dim:n
+          { \c_brain_scale_fp * ( 1in + \hoffset ) - \hoffset }
+        \pdfvorigin = \fp_to_dim:n
+          { \c_brain_scale_fp * ( 1in + \voffset ) - \voffset }
+      }
+  }
+
+\fp_compare:nNnF { \c_brain_scale_fp } = { 1 }
+  {
+    \bool_lazy_or:nnF { \sys_if_engine_pdftex_p: } { \sys_if_engine_luatex_p: }
+      {
+        \PackageError { brainposter }
+          { Option~ scale~ needs~ pdfLaTeX~ or~ LuaLaTeX }
+          { With~ XeLaTeX~ the~ page~ is~ not~ enlarged.~ Use~ pdfLaTeX. }
+      }
+    \AddToHook { shipout } { \__brain_output_page: }
+  }
+\ExplSyntaxOff
 
 % ============================================================================
 % 5. ОПРЕДЕЛЕНИЕ ЦВЕТОВ
@@ -154,8 +229,9 @@
 % 6. ГЕОМЕТРИЯ СТРАНИЦЫ
 % ============================================================================
 \geometry{
-  paperwidth=\brain@posterwidth,
-  paperheight=\brain@posterheight,
+  % размер листа вёрстки; итоговый размер PDF выставляется при выводе (4a)
+  paperwidth=\brain@designwidth,
+  paperheight=\brain@designheight,
   margin=1cm
 }
 
@@ -185,6 +261,7 @@
 % 9. НАСТРОЙКИ TCOLORBOX
 % ============================================================================
 \tcbuselibrary{skins, breakable}
+\RequirePackage{varwidth}  % для переноса длинных заголовков боксов
 
 % ============================================================================
 % 10. ВСПОМОГАТЕЛЬНЫЕ КОМАНДЫ
@@ -202,7 +279,7 @@
   {\Large\bfseries\color{sectioncolor}}
   {}{0em}
   {}
-  [\vspace{-0.5em}\rule{0.7\linewidth}{0.8pt}\vspace{-0.5em}]
+  [\vspace{-0.5em}\rule{\linewidth}{0.8pt}\vspace{-0.5em}]
 
 % ============================================================================
 % 12. META-ИНФОРМАЦИЯ
@@ -228,8 +305,33 @@
     affiliations .code:n = { \renewcommand{\affils}{#1} },
     baselogos  .code:n = { \renewcommand{\baselogoslist}{#1} },
     additionallogos .code:n = { \renewcommand{\additionallogoslist}{#1}\showadditionallogostrue },
+    keywords   .code:n = { \renewcommand{\brain@keywords}{#1} },
   }
 \ExplSyntaxOff
+
+% --- Метаданные PDF (Title / Author / Keywords) ---
+% Берутся из \setbrainmeta. Надстрочные номера, сноски и \\ из списка
+% авторов выкидываются. Перекрыть вручную: \hypersetup{pdfauthor={...}}
+\providecommand{\brain@keywords}{}
+\pdfstringdefDisableCommands{%
+  \let\textsuperscript\@gobble
+  \let\footnote\@gobble
+  \let\thanks\@gobble
+  \def\\{, }%
+}
+\AtBeginDocument{%
+  \hypersetup{
+    pdftitle={\papertitle},
+    pdfauthor={\brainauthors},
+    pdfkeywords={\brain@keywords},
+  }%
+}
+
+% --- Абзацы ---
+% На постере красная строка не нужна: текст и так разбит на короткие блоки.
+% \parskip не трогаем: он добавлялся бы и перед каждым боксом, а их в колонке
+% много. Если нужно отделить абзацы внутри блока, поставьте \medskip.
+\AtBeginDocument{\setlength{\parindent}{0pt}}
 
 % ============================================================================
 % 13. ОФОРМЛЕНИЕ БЛОКОВ
@@ -342,6 +444,14 @@
     bottom=\brain@titlebottompad,
     enhanced,
     attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
     boxed title style={
       colback=boxcolor!15,
       colframe=braincolor,
@@ -365,6 +475,14 @@
       bottom=\brain@titlebottompad,
       enhanced,
       attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
       boxed title style={
         colback=braincolor,
         colframe=braincolor,
@@ -388,6 +506,14 @@
         bottom=\brain@titlebottompad,
         enhanced,
         attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
         boxed title style={
           colback=highlightcolor,
           colframe=highlightcolor!70!black,
@@ -409,6 +535,14 @@
         bottom=\brain@titlebottompad,
         enhanced,
         attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    % длинный заголовок переносится, а не вылезает за бокс. Предел задаётся
+    % для ТЕКСТА заголовка, поэтому вычитаем и собственные отступы плашки
+    % (рамка, boxsep, lefttitle/righttitle), и 8mm: 4mm — сдвиг xshift слева,
+    % 4mm — такой же зазор справа.
+    varwidth boxed title*={-8mm-(\kvtcb@left@rule)-(\kvtcb@right@rule)-(\kvtcb@boxsep)*2-(\kvtcb@lefttitle)-(\kvtcb@righttitle)},
+    % по левому краю и без переносов слов — для заголовка так аккуратнее
+    halign title=flush left,
+    before title={\hyphenpenalty=10000 \exhyphenpenalty=10000 },
         boxed title style={
           colback=boxcolor!15,
           colframe=braincolor,
@@ -494,14 +628,14 @@
     \begin{minipage}{\algwidth}
   \fi
   \vspace{0.5em}
-  \noindent\rule{\algwidth}{0.1pt}\\[-0.2em]
+  \noindent\rule{\algwidth}{0.4pt}\\[-0.2em]
   \noindent
-  \textbf{Algorithm #2}\\[-0.8em]
-  \noindent\rule{\algwidth}{0.1pt}
+  \textbf{Algorithm: #2}\\[-0.8em]
+  \noindent\rule{\algwidth}{0.4pt}
   % Тело алгоритма пишется пользователем в окружении algorithmic
 }{%
   \vspace{-0.5em}
-  \noindent\rule{\algwidth}{0.1pt}
+  \noindent\rule{\algwidth}{0.4pt}
   \vspace{1em}
   \ifdim\algwidth<\columnwidth
     \end{minipage}
@@ -520,7 +654,7 @@
   \begin{tcolorbox}[
     brainstylebox,
     width=\algwidth,
-    title={\textbf{Algorithm #2}},
+    title={\textbf{Algorithm: #2}},
   ]
   % Тело алгоритма пишется пользователем в окружении algorithmic
 }{%
@@ -560,17 +694,25 @@
 }
 
 \newsavebox{\brainbox}
+\newsavebox{\brain@headerbox}  % глобальная копия: страница выводится уже после конца mainpart
 \newlength{\brainboxheight}
 
 \newcommand{\maketitlebox}{%
   \sbox{\brainbox}{%
     \begin{minipage}[c]{\paperwidth}
       \begin{braintitlebox}
-        \begin{minipage}[t]{0.2\textwidth}
+        % Без логотипов слева отдаём место названию; поля по бокам
+        % одинаковые, чтобы название стояло ровно по центру листа.
+        \ifx\baselogoslist\@empty
+          \def\brain@titlewd{0.7}\def\brain@leftwd{0.15}%
+        \else
+          \def\brain@titlewd{0.6}\def\brain@leftwd{0.2}%
+        \fi
+        \begin{minipage}[t]{\brain@leftwd\textwidth}
           \raggedright
           \baselogos{\baselogoslist}%
         \end{minipage}%
-        \begin{minipage}[c]{0.6\textwidth}
+        \begin{minipage}[c]{\brain@titlewd\textwidth}
           \centering
           {\Huge \textbf{\papertitle}}
         \end{minipage}%
@@ -589,12 +731,17 @@
     \end{minipage}
   }
   \settototalheight{\brainboxheight}{\usebox{\brainbox}}
-  \begin{tikzpicture}[remember picture, overlay]
-    \node[anchor=north west, inner sep=0pt] at (current page.north west)
-      {\usebox{\brainbox}};
-  \end{tikzpicture}
-  \vspace*{\brainboxheight}
-  \vspace*{-0.5cm}
+  % Шапка рисуется на фоне страницы от её верхнего левого угла (хук
+  % shipout/background, LaTeX 2020+). Раньше здесь был TikZ-оверлей с
+  % remember picture: он требовал второго прохода и оставлял в тексте
+  % пустую строку, из-за чего под шапкой была лишняя полоса.
+  \global\setbox\brain@headerbox=\copy\brainbox
+  \AddToHookNext{shipout/background}{%
+    \put(0,0){\raisebox{-\height}{\usebox{\brain@headerbox}}}%
+  }%
+  % Текст начинается от верхнего поля, а шапка — от края листа, поэтому
+  % поле и \topskip вычитаем.
+  \vspace*{\dimexpr\brainboxheight-(1in+\voffset+\topmargin+\headheight+\headsep)-\topskip\relax}%
 }
 % ============================================================================
 % 19. ОСНОВНЫЕ ОКРУЖЕНИЯ
@@ -602,12 +749,15 @@
 \NewDocumentEnvironment{mainpart}{}
 {
   \maketitlebox
-  \vspace{0.5cm}
+  \vspace{0.6cm}
+  % Эти длины multicols читает в момент \begin{multicols}, поэтому задаём их
+  % ДО него. Раньше они стояли внутри и не действовали: сверху и снизу
+  % колонок оставался лишний немасштабируемый отступ \multicolsep (12pt).
+  \setlength{\columnsep}{1.2cm}%
+  \setlength{\multicolsep}{0pt}%
+  \setlength{\premulticols}{0pt}%
+  \setlength{\postmulticols}{0pt}%
   \begin{multicols}{\brain@postercolumns}
-  \setlength{\columnsep}{1.2cm}
-  \setlength{\multicolsep}{0pt}
-  \setlength{\premulticols}{0pt}
-  \setlength{\postmulticols}{0pt}
   \raggedcolumns
 }
 {
@@ -622,10 +772,10 @@
 %     \usepackage[qrdir=images/qr, qrsize=7em]{brainposter}
 %
 % Ожидаемые файлы для \qrcodes:
-%     qr/x-qr.png         - X (Twitter) лаборатории
-%     qr/we-chat-qr.png   - WeChat лаборатории
-%     qr/own-wechat.png   - личный WeChat докладчика
-%     qr/own-tg.png       - личный Telegram докладчика
+%     qr/x-qr.png         - X (Twitter) лаборатории          (лежит в шаблоне)
+%     qr/lab-tg.png       - Telegram-канал лаборатории       (лежит в шаблоне)
+%     qr/linkedin-qr.png  - LinkedIn лаборатории             (лежит в шаблоне)
+%     qr/own-tg.png       - личный Telegram докладчика       (кладёте сами)
 %
 % Если файла нет, вместо картинки рисуется рамка-заглушка с именем файла,
 % и сборка НЕ падает — постер можно верстать до того, как готовы все QR.
@@ -646,8 +796,8 @@
 %     \renewcommand{\qrlabelowntg}{Telegram: @username}
 
 \newcommand{\qrlabelx}{X (Twitter)}
-\newcommand{\qrlabelwechat}{WeChat}
-\newcommand{\qrlabelownwechat}{My WeChat}
+\newcommand{\qrlabeltg}{Telegram}
+\newcommand{\qrlabellinkedin}{LinkedIn}
 \newcommand{\qrlabelowntg}{My Telegram}
 
 % \qrcode[размер]{файл}{подпись} — один QR-код с подписью под ним.
@@ -677,14 +827,17 @@
     \edef\brain@qrtmp{#2}%
     \setlength{\brain@qrdim}{\dimexpr#1-2\fboxsep-2\fboxrule\relax}%
     \sbox0{\tiny\ttfamily\expandafter\detokenize\expandafter{\brain@qrtmp}}%
-    \fbox{\parbox[c][\brain@qrdim][c]{\brain@qrdim}{%
+    % \vbox с \kern0pt в конце: базовая линия у нижнего края рамки, как у
+    % картинки. Иначе заглушка центрируется по базовой линии и съезжает вниз
+    % относительно соседних QR-кодов.
+    \leavevmode\vbox{\hbox{\fbox{\parbox[c][\brain@qrdim][c]{\brain@qrdim}{%
       \centering
       \ifdim\wd0>\brain@qrdim
         \resizebox{\brain@qrdim}{!}{\usebox0}%
       \else
         \usebox0
       \fi
-    }}%
+    }}}\kern0pt}%
   \endgroup
 }
 
@@ -756,8 +909,8 @@
 \newcommand{\qrcodes}[1][\brain@qrsize]{%
   \addqr[#1]{%
     x-qr.png=\qrlabelx,
-    we-chat-qr.png=\qrlabelwechat,
-    own-wechat.png=\qrlabelownwechat,
+    lab-tg.png=\qrlabeltg,
+    linkedin-qr.png=\qrlabellinkedin,
     own-tg.png=\qrlabelowntg%
   }%
 }

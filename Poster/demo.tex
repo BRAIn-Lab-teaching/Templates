@@ -2,8 +2,13 @@
 
 \usepackage[
   % ----- РАЗМЕРЫ ПОСТЕРА -----
-  posterwidth=42cm,
-  posterheight=30cm,
+  % A0 в альбомной ориентации. Постер верстается как A3 и при выводе
+  % увеличивается в scale раз: A3 -> 1, A2 -> 1.41, A1 -> 2, A0 -> 2.83.
+  % Поэтому все размеры ниже (шрифты, cm, pt) — «как для A3».
+  % Для книжной ориентации поменяйте местами ширину и высоту.
+  posterwidth=118.9cm,
+  posterheight=84.1cm,
+  scale=2.83,
   postercolumns=3,
   % ----- СТИЛЬ ШАПОК -----
   % light Светлые (голубые, чёрный текст) - ПО УМОЛЧАНИЮ
@@ -33,23 +38,35 @@
 \colorlet{plotB}{boxcolor!65!black}
 \colorlet{plotC}{highlightcolor!75!black}
 
-% Общий стиль для всех графиков — задаём один раз
+% Общий стиль для всех графиков — задаём один раз.
+% Размеры в рисунках — в em или в долях \linewidth: так они привязаны к шрифту
+% и ширине колонки, и рисунок не разъедется, если поменять шрифт или число
+% колонок. (1em здесь ≈ 0.39 см в исходнике, на A0 это 1.1 см.)
 \pgfplotsset{
   brainplot/.style={
-    % 0.98, а не 1.0: pgfplots считает width по осям, подписи торчат наружу
-    width=0.98\linewidth, height=4.9cm,
+    % scale only axis: width/height задают саму область осей, а место под
+    % подписи вычитаем явно (в em) — так ширина графика точно равна колонке.
+    scale only axis,
+    width=\linewidth-4.6em, height=0.3\linewidth,
+    % Шаг делений задаём в графиках явно (xtick distance / ytick distance).
+    % Значок в легенде — в em, в пропорции к шрифту
+    legend image code/.code={%
+      \draw[mark repeat=2, mark phase=2, ##1]
+        plot coordinates {(0em,0em) (1em,0em) (2em,0em)};},
     tick label style={font=\small},
     label style={font=\small},
     legend style={font=\small, draw=gray!40, fill=white, fill opacity=0.85,
                   text opacity=1, row sep=1pt},
-    grid=major, grid style={gray!22, thin},
-    axis line style={gray!55},
-    tick style={gray!55},
-    every axis plot/.append style={line width=1pt},
+    grid=major, grid style={gray!22, line width=0.035em},
+    axis line style={gray!55, line width=0.035em},
+    tick style={gray!55, line width=0.035em},
+    major tick length=0.3em,
+    every axis plot/.append style={line width=0.09em},
   }
 }
 
-\renewcommand{\qrlabelowntg}{Telegram: @jdoe}
+% Подписи стандартного набора QR можно переопределить:
+% \renewcommand{\qrlabelowntg}{Telegram: @jdoe}
 
 \setbrainmeta{
   title={Neural Alignment Techniques for Enhanced Semantic Representations},
@@ -70,7 +87,7 @@
 
 % \begin{custombox}{Заголовок} ... \end{custombox}
 \begin{custombox}{Key Contributions}
-\begin{itemize}[leftmargin=1.2em, itemsep=3pt, topsep=2pt]
+\begin{itemize}[leftmargin=1.2em, itemsep=0.3em, topsep=0.2em]
   \item A \textbf{contrastive alignment} objective that ties text and vision
         encoders into one semantic space.
   \item A closed-form bound on the alignment gap under strong convexity.
@@ -87,18 +104,20 @@ only the head and the alignment module are trained.
 % Рисунки: \begin{figure} ... \captionof{figure}{Подпись} \end{figure}
 % Это НЕ плавающий float — блок встаёт ровно там, где написан.
 \begin{figure}
-% Координаты заданы явно (в см). Так надёжнее, чем `right=... of ...`:
+% Координаты заданы явно (x=, y= в em). Так надёжнее, чем `right=... of ...`:
 % позиционирование относительно центра узла легко приводит к наложениям.
 \begin{tikzpicture}[
-  box/.style={rounded corners=2pt, draw=braincolor, fill=braincolor!12,
-              minimum height=8mm, minimum width=19mm, align=center,
+  x=2.6em, y=2.6em,
+  line width=0.035em,
+  box/.style={rounded corners=0.18em, draw=braincolor, fill=braincolor!12,
+              minimum height=2.1em, minimum width=4.9em, align=center,
               font=\small},
   enc/.style={box, fill=braincolor, text=white, draw=braincolor},
   core/.style={box, fill=boxcolor!45, draw=boxcolor!65!black,
-               minimum height=14mm},
+               minimum height=3.6em},
   % NB: стиль нельзя назвать `out` — так называется встроенный ключ TikZ
   outbox/.style={box, fill=highlightcolor!45, draw=highlightcolor!70!black},
-  ar/.style={-{Stealth[length=2mm]}, draw=braincolor!70, line width=0.7pt},
+  ar/.style={-{Stealth[length=0.5em]}, draw=braincolor!70, line width=0.065em},
 ]
   \node[box] (tin)   at (0,    0.85) {Text $x$};
   \node[box] (iin)   at (0,   -0.85) {Image $v$};
@@ -171,15 +190,16 @@ A map \( T: X \to X \) is \emph{non-expansive} if
   brainplot,
   xlabel={Training steps, k}, ylabel={Top-1 accuracy, \%},
   xmin=0, xmax=100, ymin=58, ymax=97,
+  xtick distance=10, ytick distance=10,
   legend pos=south east,
 ]
-\addplot[plotA, mark=*, mark size=1.1]
+\addplot[plotA, mark=*, mark size=0.1em]
   coordinates {(0,61)(10,74)(20,81)(30,85)(40,88)(50,90)(60,92)(70,93.4)(80,94.3)(90,94.9)(100,95.2)};
 \addlegendentry{Ours}
-\addplot[plotB, mark=square*, mark size=1.1, dashed]
+\addplot[plotB, mark=square*, mark size=0.1em, dashed]
   coordinates {(0,60)(10,70)(20,76)(30,80)(40,83)(50,85)(60,86.5)(70,87.6)(80,88.4)(90,88.9)(100,89.3)};
 \addlegendentry{CLIP-style}
-\addplot[plotC, mark=triangle*, mark size=1.3, dotted]
+\addplot[plotC, mark=triangle*, mark size=0.12em, dotted]
   coordinates {(0,59)(10,66)(20,71)(30,74)(40,77)(50,79)(60,80.5)(70,81.6)(80,82.3)(90,82.8)(100,83.1)};
 \addlegendentry{Frozen baseline}
 \end{axis}
@@ -189,28 +209,37 @@ faster and to a higher plateau.}
 \label{fig:curves}
 \end{figure}
 
+% Боксы на постере не нумеруются, поэтому ссылаемся гиперссылкой на якорь
 \begin{theorem}[Linear contraction]
-Let Assumption~1 hold and let \( \eta \le 1/L \). Then
-\( \|x_T - x^\star\|^2 \le (1 - \eta\mu)^T \|x_0 - x^\star\|^2 \).
+Let the \hyperlink{assumption:strong_convexity}{strong convexity assumption}
+hold and let \( \eta \le 1/L \). Then
+\[
+  \|x_T - x^\star\|^2 \le (1 - \eta\mu)^T \|x_0 - x^\star\|^2 .
+\]
 \end{theorem}
 
 \begin{figure}
 \begin{tikzpicture}
 \begin{axis}[
   brainplot,
-  height=4.3cm,
-  ybar, bar width=7pt,
+  height=0.26\linewidth,
+  ybar=0.15em, bar width=1.4em,
+  ytick distance=10,
+  legend image code/.code={%
+    \draw[#1, line width=0pt] (0em,-0.3em) rectangle (0.8em,0.5em);},
+  enlarge x limits=0.22,
   ylabel={Top-1 accuracy, \%},
   symbolic x coords={CIFAR-10, SVHN, STL-10},
   xtick=data, ymin=70, ymax=100,
-  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3},
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3,
+                /tikz/every even column/.append style={column sep=0.8em}},
   nodes near coords={}, % подписи над столбцами можно включить здесь
 ]
-\addplot[fill=plotA, draw=plotA] coordinates {(CIFAR-10,95.2)(SVHN,97.1)(STL-10,93.6)};
+\addplot[fill=plotA, draw=plotA, line width=0pt] coordinates {(CIFAR-10,95.2)(SVHN,97.1)(STL-10,93.6)};
 \addlegendentry{Ours}
-\addplot[fill=plotB, draw=plotB] coordinates {(CIFAR-10,89.3)(SVHN,94.1)(STL-10,86.2)};
+\addplot[fill=plotB, draw=plotB, line width=0pt] coordinates {(CIFAR-10,89.3)(SVHN,94.1)(STL-10,86.2)};
 \addlegendentry{CLIP-style}
-\addplot[fill=plotC, draw=plotC] coordinates {(CIFAR-10,83.1)(SVHN,90.4)(STL-10,79.8)};
+\addplot[fill=plotC, draw=plotC, line width=0pt] coordinates {(CIFAR-10,83.1)(SVHN,90.4)(STL-10,79.8)};
 \addlegendentry{Frozen}
 \end{axis}
 \end{tikzpicture}
@@ -247,7 +276,7 @@ ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 
 \begin{figure}
 % Матрица ошибок нарисована обычным TikZ: значение задаёт и число, и насыщенность
-\begin{tikzpicture}[x=9.5mm, y=9.5mm, font=\small]
+\begin{tikzpicture}[x=2.45em, y=2.45em, font=\small]
   \foreach \c [count=\i from 0] in {cat, dog, car, ship} {
     \node[anchor=east] at (0, 3.5-\i) {\c};
     \node[rotate=40, anchor=east] at (\i+0.5, -0.15) {\c};
@@ -261,7 +290,7 @@ ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
     0/1/1, 1/1/2, 2/1/94, 3/1/3,
     0/0/1, 1/0/1, 2/0/5, 3/0/93}
   {
-    \filldraw[fill=braincolor!\v, draw=gray!45, line width=0.3pt]
+    \filldraw[fill=braincolor!\v, draw=gray!45, line width=0.03em]
       (\x, \y) rectangle ++(1, 1);
     \node[text=\ifnum\v>55 white\else black\fi] at (\x+0.5, \y+0.5) {\v};
   }
@@ -274,7 +303,7 @@ ViT-Tiny & 93.1\% & 96.8\% & 5.6M \\
 % QR-коды: \addqr{файл=подпись, ...} — размер и перенос считаются сами.
 % Готовый набор лаборатории — \qrcodes. Файлы лежат в qr/ (см. qr/README.md).
 \begin{qrbox}{Scan for code \& contacts}
-\addqr{x-qr.png=Lab on X, lab-tg.png=\qrlabelowntg}
+\addqr{x-qr.png=\qrlabelx, lab-tg.png=\qrlabeltg, linkedin-qr.png=\qrlabellinkedin}
 \end{qrbox}
 
 \nocite{*}  % включает все работы из .bib файла
