@@ -76,6 +76,10 @@ PowerPoint или Google Slides — `Presentation_pptx`. Выступаете о
 | [`brainlab-lecture-pres`](skills/brainlab-lecture-pres/SKILL.md) | `Presentation_Lecture` | Верстает или переоформляет лекцию из beamer-`.tex`, PDF/`.pptx`, конспекта, markdown | [`.skill`](skills/brainlab-lecture-pres.skill) |
 | `brainlab-presentation` | `Presentation_pptx` | Собирает или переоформляет `.pptx` в бренде BrainLab из плана, заметок или готовой презентации | [`.skill`](Presentation_pptx/brainlab-presentation.skill) |
 | `iii-presentation` | `Presentation_IAI` | То же для бренда ИИИ МФТИ (не BrainLab) | [`.skill`](Presentation_IAI/iii-presentation.skill) |
+| [`presentation`](skills/presentation/SKILL.md) | — (свой стиль в `examples/`) | Пишет и правит доклады в Beamer: сторителлинг, вёрстка, проверка переполнения кадров, фирменная палитра лаборатории (сливовый и кремовый) | [`.skill`](skills/presentation.skill) |
+| [`paper-to-social`](skills/paper-to-social/SKILL.md) | — | Посты о статье для Telegram, X, LinkedIn и Хабра: голос лаборатории, проверенные числа и рисунки, без ИИ-штампов, логотипы и палитра в `assets/` | [`.skill`](skills/paper-to-social.skill) |
+
+`presentation` и `paper-to-social` — копии из [claude-brainlab](https://github.com/shkodnik1917/claude-brainlab) (папка `skills/`). Править их нужно там, а сюда переносить готовое.
 
 Скиллы для `.pptx` лежат только архивами, рядом со своими шаблонами — в
 [`Presentation_pptx/`](Presentation_pptx/) и [`Presentation_IAI/`](Presentation_IAI/).
